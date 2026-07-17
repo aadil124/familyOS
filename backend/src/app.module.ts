@@ -8,6 +8,7 @@ import { ReadinessModule } from './readiness/readiness.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AiModule } from './ai/ai.module';
 import { SharedModule } from './shared/shared.module';
+import { PrismaModule } from './database/prisma.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { SharedModule } from './shared/shared.module';
     NotificationsModule,
     AiModule,
     SharedModule,
+    PrismaModule,
   ],
   controllers: [],
   providers: [],

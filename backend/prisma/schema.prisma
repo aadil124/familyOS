@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String         @id @default(uuid())
+  fullName        String
+  email           String         @unique
+  passwordHash    String
+  status          String
+  emailVerifiedAt DateTime?
+  lastLoginAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  deletedAt       DateTime?
+
+  families        Family[]
+  refreshTokens   RefreshToken[]
+
+  @@map("users")
+}
+
+model Family {
+  id          String    @id @default(uuid())
+  ownerUserId String
+  name        String
+  status      String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  owner       User           @relation(fields: [ownerUserId], references: [id])
+  members     FamilyMember[]
+  documents   Document[]
+
+  @@map("families")
+}
+
+model FamilyMember {
+  id           String    @id @default(uuid())
+  familyId     String
+  fullName     String
+  relationship String?
+  dateOfBirth  DateTime?
+  primaryEmail String?
+  primaryPhone String?
+  status       String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  family       Family     @relation(fields: [familyId], references: [id])
+  documents    Document[]
+
+  @@map("family_members")
+}
+
+model DocumentType {
+  id            String    @id @default(uuid())
+  name          String
+  description   String?
+  normalizedKey String    @unique
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  documents     Document[]
+
+  @@map("document_types")
+}
+
+model Document {
+  id                  String    @id @default(uuid())
+  familyId            String
+  familyMemberId      String?
+  documentTypeId      String?
+  originalFileName    String
+  displayName         String
+  fileType            String
+  fileSize            Int?
+  storageProvider     String
+  storageAssetId      String
+  storageUrlReference String?
+  uploadStatus        String
+  processingStatus    String
+  reviewStatus        String
+  issueStatus         String?
+  issuedAt            DateTime?
+  expiresAt           DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  deletedAt           DateTime?
+
+  family              Family        @relation(fields: [familyId], references: [id])
+  familyMember        FamilyMember? @relation(fields: [familyMemberId], references: [id])
+  documentType        DocumentType? @relation(fields: [documentTypeId], references: [id])
+
+  @@map("documents")
+}
+
+model RefreshToken {
+  id                String    @id @default(uuid())
+  userId            String
+  tokenHash         String
+  status            String
+  issuedAt          DateTime  @default(now())
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  replacedByTokenId String?
+  deviceLabel       String?
+  ipAddress         String?
+  userAgent         String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user              User           @relation(fields: [userId], references: [id])
+  replacedBy        RefreshToken?  @relation("TokenReplacement", fields: [replacedByTokenId], references: [id])
+  replacements      RefreshToken[] @relation("TokenReplacement")
+
+  @@map("refresh_tokens")
+}
