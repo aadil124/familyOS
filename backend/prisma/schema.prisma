@@ -48,8 +48,9 @@ model User {
   updatedAt       DateTime       @updatedAt
   deletedAt       DateTime?
 
-  families        Family[]
-  refreshTokens   RefreshToken[]
+  families            Family[]
+  refreshTokens       RefreshToken[]
+  readinessAssessments ReadinessAssessment[]
 
   @@map("users")
 }
@@ -63,9 +64,10 @@ model Family {
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
 
-  owner       User           @relation(fields: [ownerUserId], references: [id])
-  members     FamilyMember[]
-  documents   Document[]
+  owner                User                  @relation(fields: [ownerUserId], references: [id])
+  members              FamilyMember[]
+  documents            Document[]
+  readinessAssessments ReadinessAssessment[]
 
   @@map("families")
 }
@@ -83,8 +85,9 @@ model FamilyMember {
   updatedAt    DateTime  @updatedAt
   deletedAt    DateTime?
 
-  family       Family     @relation(fields: [familyId], references: [id])
-  documents    Document[]
+  family               Family                @relation(fields: [familyId], references: [id])
+  documents            Document[]
+  readinessAssessments ReadinessAssessment[]
 
   @@map("family_members")
 }
@@ -203,4 +206,53 @@ model RefreshToken {
   replacements      RefreshToken[] @relation("TokenReplacement")
 
   @@map("refresh_tokens")
+}
+
+model LifeEvent {
+  id                    String                @id @default(uuid())
+  name                  String
+  normalizedKey         String                @unique
+  description           String?
+  category              String?
+  expectedDocumentRules Json?
+  isActive              Boolean               @default(true)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  assessments           ReadinessAssessment[]
+
+  @@map("life_events")
+}
+
+model ReadinessAssessment {
+  id                String        @id @default(uuid())
+  familyId          String
+  familyMemberId    String?
+  lifeEventId       String
+  requestedByUserId String
+  status            String
+  readinessScore    Float?
+  readinessLevel    String?
+  availableDocuments Json?
+  missingDocuments  Json?
+  mismatchWarnings  Json?
+  expiryWarnings    Json?
+  nextSteps         String?
+  processSummary    String?
+  confidenceScore   Float?
+  failureReason     String?
+  assessedAt        DateTime      @default(now())
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  deletedAt         DateTime?
+
+  family            Family        @relation(fields: [familyId], references: [id])
+  familyMember      FamilyMember? @relation(fields: [familyMemberId], references: [id])
+  lifeEvent         LifeEvent     @relation(fields: [lifeEventId], references: [id])
+  requestedByUser   User          @relation(fields: [requestedByUserId], references: [id])
+
+  @@index([familyId])
+  @@index([familyMemberId])
+  @@index([lifeEventId])
+  @@map("readiness_assessments")
 }
