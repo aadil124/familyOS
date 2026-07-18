@@ -52,6 +52,7 @@ model User {
   refreshTokens       RefreshToken[]
   readinessAssessments ReadinessAssessment[]
   aiConversations     AIConversation[]
+  notifications       Notification[]
 
   @@map("users")
 }
@@ -70,6 +71,7 @@ model Family {
   documents            Document[]
   readinessAssessments ReadinessAssessment[]
   aiConversations      AIConversation[]
+  notifications        Notification[]
 
   @@map("families")
 }
@@ -90,6 +92,7 @@ model FamilyMember {
   family               Family                @relation(fields: [familyId], references: [id])
   documents            Document[]
   readinessAssessments ReadinessAssessment[]
+  notifications        Notification[]
 
   @@map("family_members")
 }
@@ -136,6 +139,7 @@ model Document {
   
   ocrResult           OCRResult?
   documentAnalysis    DocumentAnalysis?
+  notifications       Notification[]
 
   @@index([familyId])
   @@index([categoryId])
@@ -252,6 +256,7 @@ model ReadinessAssessment {
   familyMember      FamilyMember? @relation(fields: [familyMemberId], references: [id])
   lifeEvent         LifeEvent     @relation(fields: [lifeEventId], references: [id])
   requestedByUser   User          @relation(fields: [requestedByUserId], references: [id])
+  notifications     Notification[]
 
   @@index([familyId])
   @@index([familyMemberId])
@@ -294,4 +299,36 @@ model AIMessage {
 
   @@index([conversationId, createdAt])
   @@map("ai_messages")
+}
+
+model Notification {
+  id                    String               @id @default(uuid())
+  userId                String
+  familyId              String
+  relatedDocumentId     String?
+  relatedFamilyMemberId String?
+  relatedAssessmentId   String?
+  type                  String
+  severity              String
+  title                 String
+  message               String
+  status                String               @default("unread")
+  actionLabel           String?
+  actionReference       String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  readAt                DateTime?
+  dismissedAt           DateTime?
+  expiresAt             DateTime?
+
+  user                  User                 @relation(fields: [userId], references: [id])
+  family                Family               @relation(fields: [familyId], references: [id])
+  document              Document?            @relation(fields: [relatedDocumentId], references: [id], onDelete: Cascade)
+  familyMember          FamilyMember?        @relation(fields: [relatedFamilyMemberId], references: [id], onDelete: Cascade)
+  readinessAssessment   ReadinessAssessment? @relation(fields: [relatedAssessmentId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([familyId, type])
+  @@index([expiresAt])
+  @@map("notifications")
 }
