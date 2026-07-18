@@ -8,6 +8,6 @@ import { AuthModule } from '../auth/auth.module';
   imports: [AuthModule],
   controllers: [FamilyController],
   providers: [FamilyService, FamilyRepository],
-  exports: [FamilyService, FamilyRepository],
+  exports: [FamilyService, FamilyRepository, AuthModule],
 })
 export class FamilyModule {}

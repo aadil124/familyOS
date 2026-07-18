@@ -123,25 +123,33 @@ describe('FamilyMemberService', () => {
   });
 
   describe('getMemberById', () => {
-    it('should return member response DTO if member is active', async () => {
+    it('should return member response DTO if member is active and belongs to the family', async () => {
       mockFamilyMemberRepository.findById.mockResolvedValue(mockMember);
 
-      const result = await service.getMemberById('member-1');
+      const result = await service.getMemberById('family-1', 'member-1');
 
       expect(familyMemberRepository.findById).toHaveBeenCalledWith('member-1');
       expect(result.fullName).toBe('Jane Doe');
     });
 
+    it('should throw NotFoundException if member belongs to a different family', async () => {
+      mockFamilyMemberRepository.findById.mockResolvedValue(mockMember);
+
+      await expect(service.getMemberById('family-different', 'member-1')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
     it('should throw NotFoundException if member is soft-deleted', async () => {
       mockFamilyMemberRepository.findById.mockResolvedValue({ ...mockMember, deletedAt: new Date() });
 
-      await expect(service.getMemberById('member-deleted')).rejects.toThrow(NotFoundException);
+      await expect(service.getMemberById('family-1', 'member-deleted')).rejects.toThrow(NotFoundException);
     });
 
     it('should throw NotFoundException if member does not exist', async () => {
       mockFamilyMemberRepository.findById.mockResolvedValue(null);
 
-      await expect(service.getMemberById('member-nonexistent')).rejects.toThrow(NotFoundException);
+      await expect(service.getMemberById('family-1', 'member-nonexistent')).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -174,12 +182,12 @@ describe('FamilyMemberService', () => {
   });
 
   describe('updateMember', () => {
-    it('should update member if active member exists', async () => {
+    it('should update member if active member exists and belongs to the family', async () => {
       const updated = { ...mockMember, fullName: 'Jane Smith' };
       mockFamilyMemberRepository.findById.mockResolvedValue(mockMember);
       mockFamilyMemberRepository.update.mockResolvedValue(updated);
 
-      const result = await service.updateMember('member-1', { fullName: 'Jane Smith' });
+      const result = await service.updateMember('family-1', 'member-1', { fullName: 'Jane Smith' });
 
       expect(familyMemberRepository.update).toHaveBeenCalledWith('member-1', {
         fullName: 'Jane Smith',
@@ -192,18 +200,18 @@ describe('FamilyMemberService', () => {
       mockFamilyMemberRepository.findById.mockResolvedValue(deleted);
 
       await expect(
-        service.updateMember('member-1', { fullName: 'Jane Smith' }),
+        service.updateMember('family-1', 'member-1', { fullName: 'Jane Smith' }),
       ).rejects.toThrow(NotFoundException);
       expect(familyMemberRepository.update).not.toHaveBeenCalled();
     });
   });
 
   describe('deleteMember', () => {
-    it('should soft delete member if active member exists', async () => {
+    it('should soft delete member if active member exists and belongs to the family', async () => {
       mockFamilyMemberRepository.findById.mockResolvedValue(mockMember);
       mockFamilyMemberRepository.softDelete.mockResolvedValue({ ...mockMember, deletedAt: new Date() });
 
-      await service.deleteMember('member-1');
+      await service.deleteMember('family-1', 'member-1');
 
       expect(familyMemberRepository.softDelete).toHaveBeenCalledWith('member-1');
     });
@@ -212,7 +220,7 @@ describe('FamilyMemberService', () => {
       const deleted = { ...mockMember, deletedAt: new Date() };
       mockFamilyMemberRepository.findById.mockResolvedValue(deleted);
 
-      await expect(service.deleteMember('member-1')).rejects.toThrow(NotFoundException);
+      await expect(service.deleteMember('family-1', 'member-1')).rejects.toThrow(NotFoundException);
       expect(familyMemberRepository.softDelete).not.toHaveBeenCalled();
     });
   });

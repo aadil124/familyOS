@@ -31,9 +31,9 @@ export class FamilyMemberService {
     return this.mapToResponseDto(member);
   }
 
-  async getMemberById(id: string): Promise<FamilyMemberResponseDto> {
+  async getMemberById(familyId: string, id: string): Promise<FamilyMemberResponseDto> {
     const member = await this.familyMemberRepository.findById(id);
-    if (!member || member.deletedAt !== null) {
+    if (!member || member.deletedAt !== null || member.familyId !== familyId) {
       throw new NotFoundException(`Family member with ID "${id}" not found`);
     }
     return this.mapToResponseDto(member);
@@ -56,19 +56,20 @@ export class FamilyMemberService {
   }
 
   async updateMember(
+    familyId: string,
     id: string,
     updateFamilyMemberDto: UpdateFamilyMemberDto,
   ): Promise<FamilyMemberResponseDto> {
-    // Ensure active member exists
-    await this.getMemberById(id);
+    // Ensure active member exists and belongs to the specified family
+    await this.getMemberById(familyId, id);
 
     const updatedMember = await this.familyMemberRepository.update(id, updateFamilyMemberDto);
     return this.mapToResponseDto(updatedMember);
   }
 
-  async deleteMember(id: string): Promise<void> {
-    // Ensure active member exists
-    await this.getMemberById(id);
+  async deleteMember(familyId: string, id: string): Promise<void> {
+    // Ensure active member exists and belongs to the specified family
+    await this.getMemberById(familyId, id);
 
     await this.familyMemberRepository.softDelete(id);
   }
