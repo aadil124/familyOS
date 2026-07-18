@@ -5,7 +5,8 @@ import { FamilyRepository } from '../../family/family.repository';
 import { FamilyMemberRepository } from '../../family-member/family-member.repository';
 import { CloudinaryService } from '../cloudinary.service';
 import { NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
-import { Document, DocumentCategory, Family, FamilyMember } from '@prisma/client';
+import { Document, DocumentCategory, Family, FamilyMember, DocumentProcessingStatus } from '@prisma/client';
+import { DocumentProcessingDispatcher } from '../../ocr/dispatchers/processing-dispatcher.interface';
 
 describe('DocumentsService', () => {
   let service: DocumentsService;
@@ -41,6 +42,10 @@ describe('DocumentsService', () => {
     deleteAsset: jest.fn(),
   };
 
+  const mockDispatcher = {
+    dispatch: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -60,6 +65,10 @@ describe('DocumentsService', () => {
         {
           provide: CloudinaryService,
           useValue: mockCloudinaryService,
+        },
+        {
+          provide: DocumentProcessingDispatcher,
+          useValue: mockDispatcher,
         },
       ],
     }).compile();
@@ -120,7 +129,7 @@ describe('DocumentsService', () => {
     storageAssetId: 'asset-1',
     storageUrlReference: null,
     uploadStatus: 'uploaded',
-    processingStatus: 'pending',
+    processingStatus: DocumentProcessingStatus.PENDING,
     reviewStatus: 'unreviewed',
     issueStatus: null,
     issuedAt: null,
@@ -177,8 +186,9 @@ describe('DocumentsService', () => {
       const result = await service.registerDocument('user-1', 'family-1', createDto);
       expect(result.id).toBe('doc-1');
       expect(result.uploadStatus).toBe('uploaded');
-      expect(result.processingStatus).toBe('pending');
+      expect(result.processingStatus).toBe(DocumentProcessingStatus.PENDING);
       expect(result.category?.name).toBe('Identity Verification');
+      expect(mockDispatcher.dispatch).toHaveBeenCalledWith('doc-1');
     });
 
     it('should throw BadRequestException if file format is unsupported', async () => {

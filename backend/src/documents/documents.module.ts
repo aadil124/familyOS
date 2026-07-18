@@ -1,4 +1,4 @@
-import { Module, OnModuleInit } from '@nestjs/common';
+import { forwardRef, Module, OnModuleInit } from '@nestjs/common';
 import { DocumentsController } from './documents.controller';
 import { DocumentsService } from './documents.service';
 import { DocumentsRepository } from './documents.repository';
@@ -6,15 +6,21 @@ import { CloudinaryService } from './cloudinary.service';
 import { PrismaModule } from '../database/prisma.module';
 import { FamilyModule } from '../family/family.module';
 import { FamilyMemberModule } from '../family-member/family-member.module';
+import { OcrModule } from '../ocr/ocr.module';
 
 @Module({
-  imports: [PrismaModule, FamilyModule, FamilyMemberModule],
+  imports: [
+    PrismaModule,
+    FamilyModule,
+    FamilyMemberModule,
+    forwardRef(() => OcrModule),
+  ],
   controllers: [DocumentsController],
   providers: [DocumentsService, DocumentsRepository, CloudinaryService],
   exports: [DocumentsService, DocumentsRepository, CloudinaryService],
 })
 export class DocumentsModule implements OnModuleInit {
-  constructor(private readonly documentsRepository: DocumentsRepository) {}
+  constructor(private readonly documentsRepository: DocumentsRepository) { }
 
   async onModuleInit() {
     try {

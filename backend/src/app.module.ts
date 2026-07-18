@@ -9,6 +9,7 @@ import { DocumentsModule } from './documents/documents.module';
 import { ReadinessModule } from './readiness/readiness.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AiModule } from './ai/ai.module';
+import { OcrModule } from './ocr/ocr.module';
 import { SharedModule } from './shared/shared.module';
 import { PrismaModule } from './database/prisma.module';
 
@@ -37,6 +38,7 @@ dotenv.config({ path: envPath, override: true });
     ReadinessModule,
     NotificationsModule,
     AiModule,
+    OcrModule,
     SharedModule,
     PrismaModule,
   ],

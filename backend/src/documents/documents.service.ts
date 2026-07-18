@@ -3,6 +3,8 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { DocumentsRepository } from './documents.repository';
 import { FamilyRepository } from '../family/family.repository';
@@ -14,6 +16,7 @@ import { DocumentResponseDto, DocumentCategoryResponseDto } from './dto/document
 import { UploadSignatureResponseDto } from './dto/upload-signature-response.dto';
 import { DownloadUrlResponseDto } from './dto/download-url-response.dto';
 import { Document, DocumentCategory } from '@prisma/client';
+import { DocumentProcessingDispatcher } from '../ocr/dispatchers/processing-dispatcher.interface';
 
 @Injectable()
 export class DocumentsService {
@@ -24,6 +27,8 @@ export class DocumentsService {
     private readonly familyRepository: FamilyRepository,
     private readonly familyMemberRepository: FamilyMemberRepository,
     private readonly cloudinaryService: CloudinaryService,
+    @Inject(forwardRef(() => DocumentProcessingDispatcher))
+    private readonly dispatcher: DocumentProcessingDispatcher,
   ) {}
 
   // --- Helper: Verify Family Ownership ---
@@ -102,8 +107,13 @@ export class DocumentsService {
       storageAssetId: dto.storageAssetId,
       storageUrlReference: null, // Dynamically generated timed download URLs used instead of public access references
       uploadStatus: 'uploaded',
-      processingStatus: 'pending',
+      processingStatus: 'PENDING',
       reviewStatus: 'unreviewed',
+    });
+
+    // Trigger background OCR pipeline
+    this.dispatcher.dispatch(document.id).catch((err) => {
+      console.error(`Failed to dispatch document ${document.id} for OCR:`, err);
     });
 
     return this.mapToResponseDto(document);

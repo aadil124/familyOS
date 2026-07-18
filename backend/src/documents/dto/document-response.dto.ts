@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { DocumentProcessingStatus } from '@prisma/client';
 
 export class DocumentCategoryResponseDto {
   @ApiProperty()
@@ -63,8 +64,8 @@ export class DocumentResponseDto {
   @ApiProperty()
   uploadStatus: string;
 
-  @ApiProperty()
-  processingStatus: string;
+  @ApiProperty({ enum: DocumentProcessingStatus })
+  processingStatus: DocumentProcessingStatus;
 
   @ApiProperty()
   reviewStatus: string;

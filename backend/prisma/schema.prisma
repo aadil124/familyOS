@@ -7,6 +7,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum DocumentProcessingStatus {
+  PENDING
+  OCR_PROCESSING
+  AI_PROCESSING
+  SUCCESS
+  FAILED
+}
+
+enum OCRStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 model User {
   id              String         @id @default(uuid())
   fullName        String
@@ -75,7 +90,7 @@ model DocumentCategory {
 }
 
 model Document {
-  id                  String    @id @default(uuid())
+  id                  String                   @id @default(uuid())
   familyId            String
   familyMemberId      String?
   categoryId          String?
@@ -87,23 +102,45 @@ model Document {
   storageAssetId      String
   storageUrlReference String?
   uploadStatus        String
-  processingStatus    String
+  processingStatus    DocumentProcessingStatus @default(PENDING)
   reviewStatus        String
   issueStatus         String?
   issuedAt            DateTime?
   expiresAt           DateTime?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
   deletedAt           DateTime?
 
-  family              Family            @relation(fields: [familyId], references: [id])
-  familyMember        FamilyMember?     @relation(fields: [familyMemberId], references: [id])
-  category            DocumentCategory? @relation(fields: [categoryId], references: [id])
+  family              Family                   @relation(fields: [familyId], references: [id])
+  familyMember        FamilyMember?            @relation(fields: [familyMemberId], references: [id])
+  category            DocumentCategory?        @relation(fields: [categoryId], references: [id])
+  
+  ocrResult           OCRResult?
 
   @@index([familyId])
   @@index([categoryId])
   @@index([familyMemberId])
   @@map("documents")
+}
+
+model OCRResult {
+  id              String    @id @default(uuid())
+  documentId      String    @unique
+  provider        String
+  providerVersion String
+  status          OCRStatus @default(PENDING)
+  extractedText   String?   @db.Text
+  textReference   String?
+  languageHints   String?
+  confidenceScore Float?
+  failureReason   String?
+  processedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  document        Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("ocr_results")
 }
 
 model RefreshToken {

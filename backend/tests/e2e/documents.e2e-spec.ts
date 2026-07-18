@@ -193,7 +193,7 @@ describe('DocumentsController (e2e)', () => {
       expect(response.body.originalFileName).toBe('passport.pdf');
       expect(response.body.displayName).toBe('My Passport E2E');
       expect(response.body.uploadStatus).toBe('uploaded');
-      expect(response.body.processingStatus).toBe('pending');
+      expect(response.body.processingStatus).toBe('PENDING');
       createdDocId = response.body.id;
     });
 
