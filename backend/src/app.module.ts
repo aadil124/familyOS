@@ -12,11 +12,21 @@ import { AiModule } from './ai/ai.module';
 import { SharedModule } from './shared/shared.module';
 import { PrismaModule } from './database/prisma.module';
 
+import * as path from 'path';
+import * as dotenv from 'dotenv';
+
+const envPath = path.resolve(
+  process.cwd(),
+  process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
+);
+
+dotenv.config({ path: envPath, override: true });
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
+      envFilePath: envPath,
     }),
     HealthModule,
     AuthModule,

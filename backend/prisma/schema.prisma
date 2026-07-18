@@ -60,7 +60,7 @@ model FamilyMember {
   @@map("family_members")
 }
 
-model DocumentType {
+model DocumentCategory {
   id            String    @id @default(uuid())
   name          String
   description   String?
@@ -71,14 +71,14 @@ model DocumentType {
 
   documents     Document[]
 
-  @@map("document_types")
+  @@map("document_categories")
 }
 
 model Document {
   id                  String    @id @default(uuid())
   familyId            String
   familyMemberId      String?
-  documentTypeId      String?
+  categoryId          String?
   originalFileName    String
   displayName         String
   fileType            String
@@ -96,10 +96,13 @@ model Document {
   updatedAt           DateTime  @updatedAt
   deletedAt           DateTime?
 
-  family              Family        @relation(fields: [familyId], references: [id])
-  familyMember        FamilyMember? @relation(fields: [familyMemberId], references: [id])
-  documentType        DocumentType? @relation(fields: [documentTypeId], references: [id])
+  family              Family            @relation(fields: [familyId], references: [id])
+  familyMember        FamilyMember?     @relation(fields: [familyMemberId], references: [id])
+  category            DocumentCategory? @relation(fields: [categoryId], references: [id])
 
+  @@index([familyId])
+  @@index([categoryId])
+  @@index([familyMemberId])
   @@map("documents")
 }
 
