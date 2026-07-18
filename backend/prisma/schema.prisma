@@ -51,6 +51,7 @@ model User {
   families            Family[]
   refreshTokens       RefreshToken[]
   readinessAssessments ReadinessAssessment[]
+  aiConversations     AIConversation[]
 
   @@map("users")
 }
@@ -68,6 +69,7 @@ model Family {
   members              FamilyMember[]
   documents            Document[]
   readinessAssessments ReadinessAssessment[]
+  aiConversations      AIConversation[]
 
   @@map("families")
 }
@@ -255,4 +257,41 @@ model ReadinessAssessment {
   @@index([familyMemberId])
   @@index([lifeEventId])
   @@map("readiness_assessments")
+}
+
+model AIConversation {
+  id            String      @id @default(uuid())
+  familyId      String
+  userId        String
+  title         String?
+  status        String      @default("active")
+  lastMessageAt DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  deletedAt     DateTime?
+
+  family        Family      @relation(fields: [familyId], references: [id])
+  user          User        @relation(fields: [userId], references: [id])
+  messages      AIMessage[]
+
+  @@index([familyId])
+  @@index([userId])
+  @@map("ai_conversations")
+}
+
+model AIMessage {
+  id              String         @id @default(uuid())
+  conversationId  String
+  role            String
+  content         String         @db.Text
+  contextSummary  String?        @db.Text
+  safetyStatus    String?
+  confidenceScore Float?
+  failureReason   String?
+  createdAt       DateTime       @default(now())
+
+  conversation   AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("ai_messages")
 }

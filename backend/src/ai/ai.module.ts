@@ -1,7 +1,11 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { AiController } from './ai.controller';
+import { ChatController } from './chat.controller';
 import { AiService } from './ai.service';
+import { ChatSessionService } from './chat-session.service';
+import { ContextBuilderService } from './context-builder.service';
 import { AiRepository } from './ai.repository';
+import { ChatRepository } from './chat.repository';
 import { MockAiProvider } from './providers/mock-ai.provider';
 import { OpenAiProvider } from './providers/openai-ai.provider';
 import { AiProviderRegistry } from './providers/ai-provider.registry';
@@ -20,10 +24,13 @@ import { OcrRepository } from '../ocr/ocr.repository';
     FamilyMemberModule,
     forwardRef(() => DocumentsModule),
   ],
-  controllers: [AiController],
+  controllers: [AiController, ChatController],
   providers: [
     AiService,
+    ChatSessionService,
+    ContextBuilderService,
     AiRepository,
+    ChatRepository,
     OcrRepository,
     MockAiProvider,
     OpenAiProvider,
@@ -35,7 +42,10 @@ import { OcrRepository } from '../ocr/ocr.repository';
   ],
   exports: [
     AiService,
+    ChatSessionService,
+    ContextBuilderService,
     AiRepository,
+    ChatRepository,
     AiAnalysisDispatcher,
   ],
 })
