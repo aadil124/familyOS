@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { randomUUID } from 'crypto';
 import { JwtPayload } from '../interfaces/auth.interface';
 
 @Injectable()
@@ -19,7 +20,11 @@ export class TokenService {
   async generateRefreshToken(payload: JwtPayload): Promise<string> {
     const secret = this.configService.get<string>('JWT_REFRESH_SECRET');
     const expiresIn = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d');
-    return this.jwtService.signAsync(payload, { secret, expiresIn });
+    const refreshPayload = {
+      ...payload,
+      jti: randomUUID(),
+    };
+    return this.jwtService.signAsync(refreshPayload, { secret, expiresIn });
   }
 
   async verifyAccessToken(token: string): Promise<JwtPayload> {

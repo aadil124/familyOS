@@ -15,7 +15,7 @@ import { PrismaModule } from './database/prisma.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
     }),
     HealthModule,
     AuthModule,
