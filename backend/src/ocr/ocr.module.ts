@@ -9,12 +9,14 @@ import { InMemoryDispatcher } from './dispatchers/in-memory-dispatcher';
 import { PrismaModule } from '../database/prisma.module';
 import { FamilyModule } from '../family/family.module';
 import { DocumentsModule } from '../documents/documents.module';
+import { AiModule } from '../ai/ai.module';
 
 @Module({
   imports: [
     PrismaModule,
     FamilyModule,
     forwardRef(() => DocumentsModule),
+    forwardRef(() => AiModule),
   ],
   controllers: [OcrController],
   providers: [

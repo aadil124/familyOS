@@ -5,9 +5,10 @@ import { OcrProviderRegistry } from '../providers/ocr-provider.registry';
 import { DocumentsRepository } from '../../documents/documents.repository';
 import { FamilyRepository } from '../../family/family.repository';
 import { CloudinaryService } from '../../documents/cloudinary.service';
-import { OCRStatus, DocumentProcessingStatus, Family, Document, OCRResult } from '@prisma/client';
+import { OCRStatus, DocumentProcessingStatus, DocumentReviewStatus, Family, Document, OCRResult } from '@prisma/client';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { OcrProvider } from '../providers/ocr-provider.interface';
+import { AiAnalysisDispatcher } from '../../ai/dispatchers/ai-dispatcher.interface';
 
 describe('OcrService', () => {
   let service: OcrService;
@@ -46,6 +47,10 @@ describe('OcrService', () => {
     generateDownloadUrl: jest.fn(),
   };
 
+  const mockAiDispatcher = {
+    dispatch: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -55,6 +60,7 @@ describe('OcrService', () => {
         { provide: DocumentsRepository, useValue: mockDocumentsRepository },
         { provide: FamilyRepository, useValue: mockFamilyRepository },
         { provide: CloudinaryService, useValue: mockCloudinaryService },
+        { provide: AiAnalysisDispatcher, useValue: mockAiDispatcher },
       ],
     }).compile();
 
@@ -92,7 +98,7 @@ describe('OcrService', () => {
     storageUrlReference: null,
     uploadStatus: 'uploaded',
     processingStatus: DocumentProcessingStatus.PENDING,
-    reviewStatus: 'unreviewed',
+    reviewStatus: DocumentReviewStatus.UNREVIEWED,
     issueStatus: null,
     issuedAt: null,
     expiresAt: null,
@@ -142,6 +148,7 @@ describe('OcrService', () => {
       });
       expect(mockActiveProvider.extractText).toHaveBeenCalledWith('https://secure.url');
       expect(ocrRepository.findByDocumentId).toHaveBeenCalledWith('doc-1');
+      expect(mockAiDispatcher.dispatch).toHaveBeenCalledWith('doc-1');
     });
 
     it('should skip API processing if a completed cache exists matching provider and version', async () => {
@@ -154,6 +161,7 @@ describe('OcrService', () => {
       expect(documentsRepository.update).toHaveBeenCalledWith('doc-1', {
         processingStatus: DocumentProcessingStatus.AI_PROCESSING,
       });
+      expect(mockAiDispatcher.dispatch).toHaveBeenCalledWith('doc-1');
     });
 
     it('should re-process if provider version changes (cache invalidation)', async () => {

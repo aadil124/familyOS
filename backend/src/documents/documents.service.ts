@@ -15,7 +15,7 @@ import { UpdateDocumentDto } from './dto/update-document.dto';
 import { DocumentResponseDto, DocumentCategoryResponseDto } from './dto/document-response.dto';
 import { UploadSignatureResponseDto } from './dto/upload-signature-response.dto';
 import { DownloadUrlResponseDto } from './dto/download-url-response.dto';
-import { Document, DocumentCategory } from '@prisma/client';
+import { Document, DocumentCategory, DocumentReviewStatus } from '@prisma/client';
 import { DocumentProcessingDispatcher } from '../ocr/dispatchers/processing-dispatcher.interface';
 
 @Injectable()
@@ -108,7 +108,7 @@ export class DocumentsService {
       storageUrlReference: null, // Dynamically generated timed download URLs used instead of public access references
       uploadStatus: 'uploaded',
       processingStatus: 'PENDING',
-      reviewStatus: 'unreviewed',
+      reviewStatus: DocumentReviewStatus.UNREVIEWED,
     });
 
     // Trigger background OCR pipeline

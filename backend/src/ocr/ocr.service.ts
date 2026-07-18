@@ -3,6 +3,8 @@ import {
   NotFoundException,
   ForbiddenException,
   Logger,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { OcrRepository } from './ocr.repository';
 import { OcrProviderRegistry } from './providers/ocr-provider.registry';
@@ -11,6 +13,7 @@ import { FamilyRepository } from '../family/family.repository';
 import { CloudinaryService } from '../documents/cloudinary.service';
 import { OCRStatus, DocumentProcessingStatus, OCRResult } from '@prisma/client';
 import { OcrResultResponseDto } from './dto/ocr-result-response.dto';
+import { AiAnalysisDispatcher } from '../ai/dispatchers/ai-dispatcher.interface';
 
 @Injectable()
 export class OcrService {
@@ -22,6 +25,8 @@ export class OcrService {
     private readonly documentsRepository: DocumentsRepository,
     private readonly familyRepository: FamilyRepository,
     private readonly cloudinaryService: CloudinaryService,
+    @Inject(forwardRef(() => AiAnalysisDispatcher))
+    private readonly aiAnalysisDispatcher: AiAnalysisDispatcher,
   ) {}
 
   // --- Helper: Verify Family Ownership ---
@@ -59,6 +64,10 @@ export class OcrService {
       // Maintain state consistency
       await this.documentsRepository.update(documentId, {
         processingStatus: DocumentProcessingStatus.AI_PROCESSING,
+      });
+      // Trigger background AI analysis
+      this.aiAnalysisDispatcher.dispatch(documentId).catch((err) => {
+        this.logger.error(`Failed to dispatch AI analysis for document ${documentId} on OCR cache hit: ${err.message}`);
       });
       return;
     }
@@ -107,6 +116,11 @@ export class OcrService {
       // Update Document processing state to AI_PROCESSING (ready for next step)
       await this.documentsRepository.update(documentId, {
         processingStatus: DocumentProcessingStatus.AI_PROCESSING,
+      });
+
+      // Trigger background AI analysis
+      this.aiAnalysisDispatcher.dispatch(documentId).catch((err) => {
+        this.logger.error(`Failed to dispatch AI analysis for document ${documentId} on OCR completion: ${err.message}`);
       });
       this.logger.log(`OCR processing completed successfully for document ${documentId}`);
 

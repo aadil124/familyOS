@@ -22,6 +22,20 @@ enum OCRStatus {
   FAILED
 }
 
+enum DocumentReviewStatus {
+  UNREVIEWED
+  PENDING_REVIEW
+  REVIEWED
+  USER_VERIFIED
+}
+
+enum AnalysisStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 model User {
   id              String         @id @default(uuid())
   fullName        String
@@ -103,7 +117,7 @@ model Document {
   storageUrlReference String?
   uploadStatus        String
   processingStatus    DocumentProcessingStatus @default(PENDING)
-  reviewStatus        String
+  reviewStatus        DocumentReviewStatus     @default(UNREVIEWED)
   issueStatus         String?
   issuedAt            DateTime?
   expiresAt           DateTime?
@@ -116,6 +130,7 @@ model Document {
   category            DocumentCategory?        @relation(fields: [categoryId], references: [id])
   
   ocrResult           OCRResult?
+  documentAnalysis    DocumentAnalysis?
 
   @@index([familyId])
   @@index([categoryId])
@@ -141,6 +156,31 @@ model OCRResult {
   document        Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@map("ocr_results")
+}
+
+model DocumentAnalysis {
+  id                   String         @id @default(uuid())
+  documentId           String         @unique
+  provider             String
+  providerVersion      String
+  status               AnalysisStatus @default(PENDING)
+  detectedDocumentType String?
+  extractedFields      Json?
+  nameOnDocument       String?
+  addressOnDocument    String?
+  issuedDate           String?
+  expiryDate           String?
+  confidenceScore      Float?
+  mismatchFlags        Json?
+  analysisSummary      String?        @db.Text
+  failureReason        String?
+  analyzedAt           DateTime?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  document             Document       @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("document_analyses")
 }
 
 model RefreshToken {

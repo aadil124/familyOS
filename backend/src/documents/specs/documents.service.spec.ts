@@ -5,7 +5,7 @@ import { FamilyRepository } from '../../family/family.repository';
 import { FamilyMemberRepository } from '../../family-member/family-member.repository';
 import { CloudinaryService } from '../cloudinary.service';
 import { NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
-import { Document, DocumentCategory, Family, FamilyMember, DocumentProcessingStatus } from '@prisma/client';
+import { Document, DocumentCategory, Family, FamilyMember, DocumentProcessingStatus, DocumentReviewStatus } from '@prisma/client';
 import { DocumentProcessingDispatcher } from '../../ocr/dispatchers/processing-dispatcher.interface';
 
 describe('DocumentsService', () => {
@@ -130,7 +130,7 @@ describe('DocumentsService', () => {
     storageUrlReference: null,
     uploadStatus: 'uploaded',
     processingStatus: DocumentProcessingStatus.PENDING,
-    reviewStatus: 'unreviewed',
+    reviewStatus: DocumentReviewStatus.UNREVIEWED,
     issueStatus: null,
     issuedAt: null,
     expiresAt: null,
