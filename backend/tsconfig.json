@@ -15,7 +15,6 @@
     "strictNullChecks": true,
     "noImplicitAny": true,
     "strictBindCallApply": true,
-    "forceConsistentCasingInFileNames": true,
-    "noFallbackAliases": true
+    "forceConsistentCasingInFileNames": true
   }
 }
