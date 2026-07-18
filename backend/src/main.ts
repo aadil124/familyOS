@@ -53,6 +53,7 @@ async function bootstrap() {
       },
       'access-token',
     )
+    .addSecurityRequirements('access-token')
     .addTag('Health')
     .addTag('Auth')
     .addTag('Users')
