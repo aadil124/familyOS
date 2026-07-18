@@ -20,7 +20,8 @@ export class CloudinaryService {
 
   generateUploadSignature(familyId: string) {
     const timestamp = Math.round(new Date().getTime() / 1000);
-    const folder = `familyos/${familyId}`;
+    const rootFolder = this.configService.get<string>('CLOUDINARY_FOLDER') || 'familyos';
+    const folder = `${rootFolder}/${familyId}`;
     const type = 'authenticated';
 
     const paramsToSign = {

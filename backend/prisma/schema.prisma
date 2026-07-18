@@ -3,8 +3,292 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                   String                @id @default(uuid())
+  fullName             String
+  email                String                @unique
+  passwordHash         String
+  status               String
+  emailVerifiedAt      DateTime?
+  lastLoginAt          DateTime?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  deletedAt            DateTime?
+  aiConversations      AIConversation[]
+  families             Family[]
+  notifications        Notification[]
+  readinessAssessments ReadinessAssessment[]
+  refreshTokens        RefreshToken[]
+
+  @@map("users")
+}
+
+model Family {
+  id                   String                @id @default(uuid())
+  ownerUserId          String
+  name                 String
+  status               String
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  deletedAt            DateTime?
+  aiConversations      AIConversation[]
+  documents            Document[]
+  owner                User                  @relation(fields: [ownerUserId], references: [id])
+  members              FamilyMember[]
+  notifications        Notification[]
+  readinessAssessments ReadinessAssessment[]
+
+  @@map("families")
+}
+
+model FamilyMember {
+  id                   String                @id @default(uuid())
+  familyId             String
+  fullName             String
+  relationship         String?
+  dateOfBirth          DateTime?
+  primaryEmail         String?
+  primaryPhone         String?
+  status               String
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  deletedAt            DateTime?
+  documents            Document[]
+  family               Family                @relation(fields: [familyId], references: [id])
+  notifications        Notification[]
+  readinessAssessments ReadinessAssessment[]
+
+  @@map("family_members")
+}
+
+model DocumentCategory {
+  id            String     @id @default(uuid())
+  name          String
+  description   String?
+  normalizedKey String     @unique
+  isActive      Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  documents     Document[]
+
+  @@map("document_categories")
+}
+
+model Document {
+  id                  String                   @id @default(uuid())
+  familyId            String
+  familyMemberId      String?
+  categoryId          String?
+  originalFileName    String
+  displayName         String
+  fileType            String
+  fileSize            Int?
+  storageProvider     String
+  storageAssetId      String
+  storageUrlReference String?
+  uploadStatus        String
+  issueStatus         String?
+  issuedAt            DateTime?
+  expiresAt           DateTime?
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  deletedAt           DateTime?
+  processingStatus    DocumentProcessingStatus @default(PENDING)
+  reviewStatus        DocumentReviewStatus     @default(UNREVIEWED)
+  documentAnalysis    DocumentAnalysis?
+  category            DocumentCategory?        @relation(fields: [categoryId], references: [id])
+  family              Family                   @relation(fields: [familyId], references: [id])
+  familyMember        FamilyMember?            @relation(fields: [familyMemberId], references: [id])
+  notifications       Notification[]
+  ocrResult           OCRResult?
+
+  @@index([familyId])
+  @@index([categoryId])
+  @@index([familyMemberId])
+  @@map("documents")
+}
+
+model OCRResult {
+  id              String    @id @default(uuid())
+  documentId      String    @unique
+  provider        String
+  providerVersion String
+  status          OCRStatus @default(PENDING)
+  extractedText   String?
+  textReference   String?
+  languageHints   String?
+  confidenceScore Float?
+  failureReason   String?
+  processedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  document        Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("ocr_results")
+}
+
+model DocumentAnalysis {
+  id                   String         @id @default(uuid())
+  documentId           String         @unique
+  provider             String
+  providerVersion      String
+  status               AnalysisStatus @default(PENDING)
+  detectedDocumentType String?
+  extractedFields      Json?
+  nameOnDocument       String?
+  addressOnDocument    String?
+  issuedDate           String?
+  expiryDate           String?
+  confidenceScore      Float?
+  mismatchFlags        Json?
+  analysisSummary      String?
+  failureReason        String?
+  analyzedAt           DateTime?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  document             Document       @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("document_analyses")
+}
+
+model RefreshToken {
+  id                String         @id @default(uuid())
+  userId            String
+  tokenHash         String
+  status            String
+  issuedAt          DateTime       @default(now())
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  replacedByTokenId String?
+  deviceLabel       String?
+  ipAddress         String?
+  userAgent         String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  replacedBy        RefreshToken?  @relation("TokenReplacement", fields: [replacedByTokenId], references: [id])
+  replacements      RefreshToken[] @relation("TokenReplacement")
+  user              User           @relation(fields: [userId], references: [id])
+
+  @@map("refresh_tokens")
+}
+
+model LifeEvent {
+  id                    String                @id @default(uuid())
+  name                  String
+  normalizedKey         String                @unique
+  description           String?
+  category              String?
+  expectedDocumentRules Json?
+  isActive              Boolean               @default(true)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  assessments           ReadinessAssessment[]
+
+  @@map("life_events")
+}
+
+model ReadinessAssessment {
+  id                 String         @id @default(uuid())
+  familyId           String
+  familyMemberId     String?
+  lifeEventId        String
+  requestedByUserId  String
+  status             String
+  readinessScore     Float?
+  readinessLevel     String?
+  availableDocuments Json?
+  missingDocuments   Json?
+  mismatchWarnings   Json?
+  expiryWarnings     Json?
+  nextSteps          String?
+  processSummary     String?
+  confidenceScore    Float?
+  failureReason      String?
+  assessedAt         DateTime       @default(now())
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  deletedAt          DateTime?
+  notifications      Notification[]
+  family             Family         @relation(fields: [familyId], references: [id])
+  familyMember       FamilyMember?  @relation(fields: [familyMemberId], references: [id])
+  lifeEvent          LifeEvent      @relation(fields: [lifeEventId], references: [id])
+  requestedByUser    User           @relation(fields: [requestedByUserId], references: [id])
+
+  @@index([familyId])
+  @@index([familyMemberId])
+  @@index([lifeEventId])
+  @@map("readiness_assessments")
+}
+
+model AIConversation {
+  id            String      @id @default(uuid())
+  familyId      String
+  userId        String
+  title         String?
+  status        String      @default("active")
+  lastMessageAt DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  deletedAt     DateTime?
+  family        Family      @relation(fields: [familyId], references: [id])
+  user          User        @relation(fields: [userId], references: [id])
+  messages      AIMessage[]
+
+  @@index([familyId])
+  @@index([userId])
+  @@map("ai_conversations")
+}
+
+model AIMessage {
+  id              String         @id @default(uuid())
+  conversationId  String
+  role            String
+  content         String
+  contextSummary  String?
+  safetyStatus    String?
+  confidenceScore Float?
+  failureReason   String?
+  createdAt       DateTime       @default(now())
+  conversation    AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("ai_messages")
+}
+
+model Notification {
+  id                    String               @id @default(uuid())
+  userId                String
+  familyId              String
+  relatedDocumentId     String?
+  relatedFamilyMemberId String?
+  relatedAssessmentId   String?
+  type                  String
+  severity              String
+  title                 String
+  message               String
+  status                String               @default("unread")
+  actionLabel           String?
+  actionReference       String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  readAt                DateTime?
+  dismissedAt           DateTime?
+  expiresAt             DateTime?
+  family                Family               @relation(fields: [familyId], references: [id])
+  readinessAssessment   ReadinessAssessment? @relation(fields: [relatedAssessmentId], references: [id], onDelete: Cascade)
+  document              Document?            @relation(fields: [relatedDocumentId], references: [id], onDelete: Cascade)
+  familyMember          FamilyMember?        @relation(fields: [relatedFamilyMemberId], references: [id], onDelete: Cascade)
+  user                  User                 @relation(fields: [userId], references: [id])
+
+  @@index([userId, status])
+  @@index([familyId, type])
+  @@index([expiresAt])
+  @@map("notifications")
 }
 
 enum DocumentProcessingStatus {
@@ -34,301 +318,4 @@ enum AnalysisStatus {
   PROCESSING
   COMPLETED
   FAILED
-}
-
-model User {
-  id              String         @id @default(uuid())
-  fullName        String
-  email           String         @unique
-  passwordHash    String
-  status          String
-  emailVerifiedAt DateTime?
-  lastLoginAt     DateTime?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  deletedAt       DateTime?
-
-  families            Family[]
-  refreshTokens       RefreshToken[]
-  readinessAssessments ReadinessAssessment[]
-  aiConversations     AIConversation[]
-  notifications       Notification[]
-
-  @@map("users")
-}
-
-model Family {
-  id          String    @id @default(uuid())
-  ownerUserId String
-  name        String
-  status      String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
-
-  owner                User                  @relation(fields: [ownerUserId], references: [id])
-  members              FamilyMember[]
-  documents            Document[]
-  readinessAssessments ReadinessAssessment[]
-  aiConversations      AIConversation[]
-  notifications        Notification[]
-
-  @@map("families")
-}
-
-model FamilyMember {
-  id           String    @id @default(uuid())
-  familyId     String
-  fullName     String
-  relationship String?
-  dateOfBirth  DateTime?
-  primaryEmail String?
-  primaryPhone String?
-  status       String
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  deletedAt    DateTime?
-
-  family               Family                @relation(fields: [familyId], references: [id])
-  documents            Document[]
-  readinessAssessments ReadinessAssessment[]
-  notifications        Notification[]
-
-  @@map("family_members")
-}
-
-model DocumentCategory {
-  id            String    @id @default(uuid())
-  name          String
-  description   String?
-  normalizedKey String    @unique
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  documents     Document[]
-
-  @@map("document_categories")
-}
-
-model Document {
-  id                  String                   @id @default(uuid())
-  familyId            String
-  familyMemberId      String?
-  categoryId          String?
-  originalFileName    String
-  displayName         String
-  fileType            String
-  fileSize            Int?
-  storageProvider     String
-  storageAssetId      String
-  storageUrlReference String?
-  uploadStatus        String
-  processingStatus    DocumentProcessingStatus @default(PENDING)
-  reviewStatus        DocumentReviewStatus     @default(UNREVIEWED)
-  issueStatus         String?
-  issuedAt            DateTime?
-  expiresAt           DateTime?
-  createdAt           DateTime                 @default(now())
-  updatedAt           DateTime                 @updatedAt
-  deletedAt           DateTime?
-
-  family              Family                   @relation(fields: [familyId], references: [id])
-  familyMember        FamilyMember?            @relation(fields: [familyMemberId], references: [id])
-  category            DocumentCategory?        @relation(fields: [categoryId], references: [id])
-  
-  ocrResult           OCRResult?
-  documentAnalysis    DocumentAnalysis?
-  notifications       Notification[]
-
-  @@index([familyId])
-  @@index([categoryId])
-  @@index([familyMemberId])
-  @@map("documents")
-}
-
-model OCRResult {
-  id              String    @id @default(uuid())
-  documentId      String    @unique
-  provider        String
-  providerVersion String
-  status          OCRStatus @default(PENDING)
-  extractedText   String?   @db.Text
-  textReference   String?
-  languageHints   String?
-  confidenceScore Float?
-  failureReason   String?
-  processedAt     DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  document        Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
-
-  @@map("ocr_results")
-}
-
-model DocumentAnalysis {
-  id                   String         @id @default(uuid())
-  documentId           String         @unique
-  provider             String
-  providerVersion      String
-  status               AnalysisStatus @default(PENDING)
-  detectedDocumentType String?
-  extractedFields      Json?
-  nameOnDocument       String?
-  addressOnDocument    String?
-  issuedDate           String?
-  expiryDate           String?
-  confidenceScore      Float?
-  mismatchFlags        Json?
-  analysisSummary      String?        @db.Text
-  failureReason        String?
-  analyzedAt           DateTime?
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
-
-  document             Document       @relation(fields: [documentId], references: [id], onDelete: Cascade)
-
-  @@map("document_analyses")
-}
-
-model RefreshToken {
-  id                String    @id @default(uuid())
-  userId            String
-  tokenHash         String
-  status            String
-  issuedAt          DateTime  @default(now())
-  expiresAt         DateTime
-  revokedAt         DateTime?
-  replacedByTokenId String?
-  deviceLabel       String?
-  ipAddress         String?
-  userAgent         String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-
-  user              User           @relation(fields: [userId], references: [id])
-  replacedBy        RefreshToken?  @relation("TokenReplacement", fields: [replacedByTokenId], references: [id])
-  replacements      RefreshToken[] @relation("TokenReplacement")
-
-  @@map("refresh_tokens")
-}
-
-model LifeEvent {
-  id                    String                @id @default(uuid())
-  name                  String
-  normalizedKey         String                @unique
-  description           String?
-  category              String?
-  expectedDocumentRules Json?
-  isActive              Boolean               @default(true)
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
-
-  assessments           ReadinessAssessment[]
-
-  @@map("life_events")
-}
-
-model ReadinessAssessment {
-  id                String        @id @default(uuid())
-  familyId          String
-  familyMemberId    String?
-  lifeEventId       String
-  requestedByUserId String
-  status            String
-  readinessScore    Float?
-  readinessLevel    String?
-  availableDocuments Json?
-  missingDocuments  Json?
-  mismatchWarnings  Json?
-  expiryWarnings    Json?
-  nextSteps         String?
-  processSummary    String?
-  confidenceScore   Float?
-  failureReason     String?
-  assessedAt        DateTime      @default(now())
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  deletedAt         DateTime?
-
-  family            Family        @relation(fields: [familyId], references: [id])
-  familyMember      FamilyMember? @relation(fields: [familyMemberId], references: [id])
-  lifeEvent         LifeEvent     @relation(fields: [lifeEventId], references: [id])
-  requestedByUser   User          @relation(fields: [requestedByUserId], references: [id])
-  notifications     Notification[]
-
-  @@index([familyId])
-  @@index([familyMemberId])
-  @@index([lifeEventId])
-  @@map("readiness_assessments")
-}
-
-model AIConversation {
-  id            String      @id @default(uuid())
-  familyId      String
-  userId        String
-  title         String?
-  status        String      @default("active")
-  lastMessageAt DateTime?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  deletedAt     DateTime?
-
-  family        Family      @relation(fields: [familyId], references: [id])
-  user          User        @relation(fields: [userId], references: [id])
-  messages      AIMessage[]
-
-  @@index([familyId])
-  @@index([userId])
-  @@map("ai_conversations")
-}
-
-model AIMessage {
-  id              String         @id @default(uuid())
-  conversationId  String
-  role            String
-  content         String         @db.Text
-  contextSummary  String?        @db.Text
-  safetyStatus    String?
-  confidenceScore Float?
-  failureReason   String?
-  createdAt       DateTime       @default(now())
-
-  conversation   AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-
-  @@index([conversationId, createdAt])
-  @@map("ai_messages")
-}
-
-model Notification {
-  id                    String               @id @default(uuid())
-  userId                String
-  familyId              String
-  relatedDocumentId     String?
-  relatedFamilyMemberId String?
-  relatedAssessmentId   String?
-  type                  String
-  severity              String
-  title                 String
-  message               String
-  status                String               @default("unread")
-  actionLabel           String?
-  actionReference       String?
-  createdAt             DateTime             @default(now())
-  updatedAt             DateTime             @updatedAt
-  readAt                DateTime?
-  dismissedAt           DateTime?
-  expiresAt             DateTime?
-
-  user                  User                 @relation(fields: [userId], references: [id])
-  family                Family               @relation(fields: [familyId], references: [id])
-  document              Document?            @relation(fields: [relatedDocumentId], references: [id], onDelete: Cascade)
-  familyMember          FamilyMember?        @relation(fields: [relatedFamilyMemberId], references: [id], onDelete: Cascade)
-  readinessAssessment   ReadinessAssessment? @relation(fields: [relatedAssessmentId], references: [id], onDelete: Cascade)
-
-  @@index([userId, status])
-  @@index([familyId, type])
-  @@index([expiresAt])
-  @@map("notifications")
 }
