@@ -3,6 +3,7 @@ import { ROUTE_ARGS_METADATA } from '@nestjs/common/constants';
 import { CurrentUser } from './current-user.decorator';
 import { Public, IS_PUBLIC_KEY } from './public.decorator';
 import { Roles, ROLES_KEY } from './roles.decorator';
+import { UserRole } from '../enums/role.enum';
 
 function getParamDecoratorFactory(decorator: Function) {
   class TestClass {
@@ -16,7 +17,7 @@ describe('Decorators', () => {
   describe('@CurrentUser', () => {
     it('should return request.user from ExecutionContext', () => {
       const factory = getParamDecoratorFactory(CurrentUser);
-      const mockUser = { userId: '123', email: 'test@user.com', role: 'ADMIN' };
+      const mockUser = { userId: '123', email: 'test@user.com', role: UserRole.ADMIN };
       const mockCtx = {
         switchToHttp: () => ({
           getRequest: () => ({
@@ -46,13 +47,13 @@ describe('Decorators', () => {
   describe('@Roles', () => {
     it('should set roles metadata with provided roles', () => {
       class TestController {
-        @Roles('ADMIN', 'USER')
+        @Roles(UserRole.ADMIN, UserRole.MEMBER)
         testMethod() {}
       }
 
       const instance = new TestController();
       const metadata = Reflect.getMetadata(ROLES_KEY, instance.testMethod);
-      expect(metadata).toEqual(['ADMIN', 'USER']);
+      expect(metadata).toEqual([UserRole.ADMIN, UserRole.MEMBER]);
     });
   });
 });

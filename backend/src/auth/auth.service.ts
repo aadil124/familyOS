@@ -30,7 +30,7 @@ export class AuthService {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
-      role: 'USER',
+      role: 'OWNER',
     };
 
     const accessToken = await this.tokenService.generateAccessToken(payload);
@@ -65,7 +65,7 @@ export class AuthService {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
-      role: 'USER',
+      role: 'OWNER',
     };
 
     const accessToken = await this.tokenService.generateAccessToken(payload);
