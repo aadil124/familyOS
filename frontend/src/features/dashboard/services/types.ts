@@ -163,3 +163,24 @@ export interface AiAnalysisResponseDto {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface AIConversation {
+  id: string;
+  familyId: string;
+  userId: string;
+  title: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AIMessage {
+  id: string;
+  conversationId: string;
+  role: "user" | "assistant";
+  content: string;
+  safetyStatus?: string | null;
+  failureReason?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

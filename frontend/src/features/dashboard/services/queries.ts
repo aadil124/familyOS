@@ -13,6 +13,8 @@ import {
   DownloadUrlResponseDto,
   OcrResultResponseDto,
   AiAnalysisResponseDto,
+  AIConversation,
+  AIMessage,
 } from "./types";
 
 export const dashboardKeys = {
@@ -509,6 +511,73 @@ export function useDocumentAnalysisQuery(familyId?: string, documentId?: string)
     },
   });
 }
+
+// 10. AI Chat Assistant queries & mutations
+export function useConversationsQuery(familyId?: string, options?: { page?: number; limit?: number }) {
+  return useQuery({
+    queryKey: ["conversations", familyId, options],
+    queryFn: async (): Promise<AIConversation[]> => {
+      const response = await api.get<{ success: boolean; data: AIConversation[] }>(
+        `/v1/families/${familyId}/chat/conversations`,
+        { params: options }
+      );
+      return response.data.data;
+    },
+    enabled: !!familyId,
+  });
+}
+
+export function useCreateConversationMutation(familyId?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: { title?: string }): Promise<AIConversation> => {
+      const response = await api.post<{ success: boolean; data: AIConversation }>(
+        `/v1/families/${familyId}/chat/conversations`,
+        payload
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["conversations", familyId] });
+    },
+  });
+}
+
+export function useMessagesQuery(familyId?: string, conversationId?: string, options?: { page?: number; limit?: number }) {
+  return useQuery({
+    queryKey: ["messages", familyId, conversationId, options],
+    queryFn: async (): Promise<AIMessage[]> => {
+      const response = await api.get<{ success: boolean; data: AIMessage[] }>(
+        `/v1/families/${familyId}/chat/conversations/${conversationId}/messages`,
+        { params: options }
+      );
+      // Backend returns messages in chronological order or reverse order. We sort chronological for display
+      return [...response.data.data].sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+    },
+    enabled: !!familyId && !!conversationId,
+  });
+}
+
+export function useSendMessageMutation(familyId?: string, conversationId?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: { content: string }): Promise<AIMessage> => {
+      const response = await api.post<{ success: boolean; data: AIMessage }>(
+        `/v1/families/${familyId}/chat/conversations/${conversationId}/messages`,
+        payload
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["messages", familyId, conversationId] });
+    },
+  });
+}
+
 
 
 
