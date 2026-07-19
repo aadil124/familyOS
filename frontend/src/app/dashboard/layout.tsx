@@ -26,6 +26,7 @@ import {
   Search,
   Sun,
   Moon,
+  FolderHeart,
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -84,6 +85,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: <LayoutDashboard className="h-4.5 w-4.5" /> },
+    { name: "Family Workspaces", href: "/dashboard/families", icon: <FolderHeart className="h-4.5 w-4.5" /> },
     { name: "Family Members", href: "/dashboard/family", icon: <Users className="h-4.5 w-4.5" /> },
     { name: "Family Vault", href: "/dashboard/vault", icon: <FolderLock className="h-4.5 w-4.5" /> },
     { name: "Readiness Audits", href: "/dashboard/audits", icon: <CalendarCheck2 className="h-4.5 w-4.5" /> },
