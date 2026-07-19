@@ -10,17 +10,15 @@ import {
   setStoredRefreshToken,
   setRememberMeSetting,
 } from "@/services/api";
-import { AuthUserResponseDto, TokenPairResponseDto, UserResponseDto } from "../services/types";
+import { AuthUserResponseDto, TokenPairResponseDto, UserResponseDto, LoginCredentials, RegisterPayload } from "../services/types";
 import { useLoginMutation, useRegisterMutation, useLogoutMutation } from "../services/mutations";
-import { LoginDto } from "../components/LoginForm";
-import { RegisterDto } from "../components/RegisterForm";
 
 interface AuthContextType {
   user: UserResponseDto | AuthUserResponseDto | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (credentials: LoginDto, rememberMe: boolean) => Promise<void>;
-  register: (userData: RegisterDto) => Promise<void>;
+  login: (credentials: LoginCredentials, rememberMe: boolean) => Promise<void>;
+  register: (userData: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -103,8 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return res.data;
   }
 
-  // 3. Context Action Implementations
-  const login = async (credentials: LoginDto, rememberMe: boolean) => {
+  const login = async (credentials: LoginCredentials, rememberMe: boolean) => {
     try {
       const result = await loginMutation.mutateAsync(credentials);
       setAccessToken(result.accessToken);
@@ -121,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (userData: RegisterDto) => {
+  const register = async (userData: RegisterPayload) => {
     try {
       const result = await registerMutation.mutateAsync(userData);
       setAccessToken(result.accessToken);

@@ -4,15 +4,15 @@ import { authKeys } from "./keys";
 import {
   LoginResponseDto,
   RegisterResponseDto,
+  LoginCredentials,
+  RegisterPayload,
 } from "./types";
-import { LoginDto } from "../components/LoginForm";
-import { RegisterDto } from "../components/RegisterForm";
 
 export function useLoginMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (credentials: LoginDto): Promise<LoginResponseDto> => {
+    mutationFn: async (credentials: LoginCredentials): Promise<LoginResponseDto> => {
       const response = await api.post<LoginResponseDto>("/v1/auth/login", credentials);
       return response.data;
     },
@@ -27,7 +27,7 @@ export function useRegisterMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (userData: RegisterDto): Promise<RegisterResponseDto> => {
+    mutationFn: async (userData: RegisterPayload): Promise<RegisterResponseDto> => {
       const response = await api.post<RegisterResponseDto>("/v1/auth/register", userData);
       return response.data;
     },

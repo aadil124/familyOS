@@ -40,3 +40,15 @@ export interface ApiErrorResponse {
   path: string;
   message: string;
 }
+
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface RegisterPayload {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+}

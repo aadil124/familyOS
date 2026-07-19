@@ -20,7 +20,7 @@ const loginSchema = z.object({
   password: z
     .string()
     .min(1, { message: "Password is required" }),
-  rememberMe: z.boolean().default(false),
+  rememberMe: z.boolean(),
 });
 
 export type LoginDto = z.infer<typeof loginSchema>;
