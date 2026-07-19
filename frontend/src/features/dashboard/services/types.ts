@@ -73,15 +73,24 @@ export interface ReadinessAssessmentResponseDto {
   lifeEventId: string;
   requestedByUserId: string;
   status: string;
-  readinessScore?: number | null;
-  readinessLevel?: string | null;
-  availableDocuments?: unknown;
-  missingDocuments?: unknown;
-  mismatchWarnings?: unknown;
-  expiryWarnings?: unknown;
-  nextSteps?: string | null;
-  processSummary?: string | null;
-  confidenceScore?: number | null;
+  readinessScore: number;
+  readinessLevel: string;
+  availableDocuments: {
+    documentId: string;
+    displayName: string;
+    categoryKey: string;
+    categoryName: string;
+  }[];
+  missingDocuments: string[];
+  mismatchWarnings: unknown[];
+  expiryWarnings: {
+    documentId: string;
+    displayName: string;
+    message: string;
+  }[];
+  nextSteps: string;
+  processSummary: string;
+  confidenceScore: number;
   failureReason?: string | null;
   assessedAt: string;
   createdAt: string;
@@ -185,45 +194,3 @@ export interface AIMessage {
   updatedAt: string;
 }
 
-export interface LifeEventResponseDto {
-  id: string;
-  name: string;
-  normalizedKey: string;
-  description?: string | null;
-  category?: string | null;
-  expectedDocumentRules?: any | null;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ReadinessAssessmentResponseDto {
-  id: string;
-  familyId: string;
-  familyMemberId: string | null;
-  lifeEventId: string;
-  requestedByUserId: string;
-  status: string;
-  readinessScore: number;
-  readinessLevel: string;
-  availableDocuments: {
-    documentId: string;
-    displayName: string;
-    categoryKey: string;
-    categoryName: string;
-  }[];
-  missingDocuments: string[];
-  mismatchWarnings: any[];
-  expiryWarnings: {
-    documentId: string;
-    displayName: string;
-    message: string;
-  }[];
-  nextSteps: string;
-  processSummary: string;
-  confidenceScore: number;
-  assessedAt: string;
-  createdAt: string;
-  updatedAt: string;
-  lifeEvent?: LifeEventResponseDto | null;
-}

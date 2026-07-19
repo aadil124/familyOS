@@ -25,7 +25,7 @@ export const dashboardKeys = {
   members: (familyId?: string) => [...dashboardKeys.all, "members", familyId] as const,
   documents: (familyId?: string, filters?: object) => [...dashboardKeys.all, "documents", familyId, filters || {}] as const,
   assessments: (familyId?: string) => [...dashboardKeys.all, "assessments", familyId] as const,
-  notifications: (familyId?: string) => [...dashboardKeys.all, "notifications", familyId] as const,
+  notifications: (familyId?: string, filters?: object) => [...dashboardKeys.all, "notifications", familyId, filters || {}] as const,
   health: () => [...dashboardKeys.all, "health"] as const,
 };
 
@@ -118,7 +118,7 @@ interface NotificationsResponse {
 
 export function useNotificationsQuery(familyId?: string, options?: { page?: number; limit?: number; status?: string }) {
   return useQuery({
-    queryKey: dashboardKeys.notifications(familyId),
+    queryKey: dashboardKeys.notifications(familyId, options),
     queryFn: async (): Promise<NotificationsResponse> => {
       const response = await api.get<NotificationsResponse>(`/v1/families/${familyId}/notifications`, {
         params: options,

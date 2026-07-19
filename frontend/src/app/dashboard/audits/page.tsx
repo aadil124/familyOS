@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -11,27 +11,20 @@ import {
   useLifeEventsQuery,
   useFamilyMembersQuery,
   useCreateAssessmentMutation,
-  useDocumentsQuery,
 } from "@/features/dashboard/services/queries";
-import { ReadinessAssessmentResponseDto, LifeEventResponseDto } from "@/features/dashboard/services/types";
+import { ReadinessAssessmentResponseDto } from "@/features/dashboard/services/types";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShieldAlert,
   ShieldCheck,
-  Calendar,
   AlertTriangle,
   History,
   FileCheck,
   ChevronRight,
-  TrendingUp,
   Cpu,
   ArrowRight,
-  Sparkles,
-  Users,
   Award,
   CheckCircle,
-  HelpCircle,
-  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -39,17 +32,19 @@ export default function ReadinessAuditsPage() {
   const { activeFamily } = useWorkspace();
   const familyId = activeFamily?.id;
 
-  // 1. Fetch Readiness Assessments & metadata
-  const [page, setPage] = useState(1);
+  // Fetch past assessments (limit 10 for dashboard display)
   const { data: pastData, isLoading: assessmentsLoading, refetch: refetchAssessments } =
-    useAssessmentsQuery(familyId, { page, limit: 10 });
-  const pastAssessments = pastData?.data || [];
+    useAssessmentsQuery(familyId, { page: 1, limit: 10 });
+  
+  // Memoize document logs
+  const pastAssessments = useMemo(() => {
+    return pastData?.data || [];
+  }, [pastData]);
 
-  const { data: lifeEvents = [], isLoading: eventsLoading } = useLifeEventsQuery();
+  const { data: lifeEvents = [] } = useLifeEventsQuery();
   const { data: members = [] } = useFamilyMembersQuery(familyId);
-  const { data: documents = [] } = useDocumentsQuery(familyId);
 
-  // Wizard States
+  // Wizard Dialog States
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
   const [selectedEventId, setSelectedEventId] = useState("");
@@ -68,16 +63,26 @@ export default function ReadinessAuditsPage() {
   const createAssessmentMutation = useCreateAssessmentMutation(familyId);
 
   // Calculate Dashboard Averages
-  const dashboardStats = useMemo(() => {
+  const stats = useMemo(() => {
     if (pastAssessments.length === 0) {
-      return { avgScore: 0, auditedCount: 0, warningCount: 0 };
+      return { avgScore: 0, auditedCount: 0, warningCount: 0, riskLevel: "High Risk", riskColor: "text-rose-500 bg-rose-500/10 border-rose-500/20" };
     }
-    const sum = pastAssessments.reduce((acc, item) => acc + item.readinessScore, 0);
+    const sum = pastAssessments.reduce((acc, item) => acc + (item.readinessScore ?? 0), 0);
     const avgScore = Math.round(sum / pastAssessments.length);
     const auditedCount = pastAssessments.length;
     const warningCount = pastAssessments.reduce((acc, item) => acc + (item.expiryWarnings?.length || 0), 0);
 
-    return { avgScore, auditedCount, warningCount };
+    let riskLevel = "High Risk";
+    let riskColor = "text-rose-500 bg-rose-500/10 border-rose-500/20";
+    if (avgScore >= 80) {
+      riskLevel = "Low Risk";
+      riskColor = "text-emerald-500 bg-emerald-500/10 border-emerald-500/20";
+    } else if (avgScore >= 50) {
+      riskLevel = "Medium Risk";
+      riskColor = "text-amber-500 bg-amber-500/10 border-amber-500/20";
+    }
+
+    return { avgScore, auditedCount, warningCount, riskLevel, riskColor };
   }, [pastAssessments]);
 
   // Map event details helper
@@ -85,8 +90,27 @@ export default function ReadinessAuditsPage() {
     return lifeEvents.find((e) => e.id === selectedEventId);
   }, [lifeEvents, selectedEventId]);
 
+  // AI Recommendations synthesized dynamically from past assessments
+  const aiRecommendations = useMemo(() => {
+    const list: { id: string; title: string; category: string; description: string }[] = [];
+    pastAssessments.forEach((item) => {
+      if (item.missingDocuments && item.missingDocuments.length > 0) {
+        const evName = lifeEvents.find((e) => e.id === item.lifeEventId)?.name || "milestone";
+        item.missingDocuments.forEach((mCategory) => {
+          list.push({
+            id: `${item.id}-${mCategory}`,
+            title: `Upload ${mCategory}`,
+            category: evName,
+            description: `To improve your score for "${evName}", register a valid ${mCategory} file in the Family Vault.`,
+          });
+        });
+      }
+    });
+    return list.slice(0, 3); // Display top 3 recommendations
+  }, [pastAssessments, lifeEvents]);
+
   // Handlers
-  const handleOpenWizard = () => {
+  const handleOpenWizard = useCallback(() => {
     setWizardStep(1);
     setSelectedEventId(lifeEvents[0]?.id || "");
     setSelectedMemberId("");
@@ -94,7 +118,7 @@ export default function ReadinessAuditsPage() {
     setQCopiesStored(null);
     setCreatedAssessment(null);
     setWizardOpen(true);
-  };
+  }, [lifeEvents]);
 
   const handleRunAudit = async () => {
     if (!selectedEventId) return;
@@ -153,7 +177,7 @@ export default function ReadinessAuditsPage() {
             Readiness Assessments
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Conduct document checks and compliance audits for major life events.
+            Conduct document checks and compliance audits for major life milestones.
           </p>
         </div>
 
@@ -166,13 +190,13 @@ export default function ReadinessAuditsPage() {
         </Button>
       </div>
 
-      {/* 2. Stats Row */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8 select-none animate-in fade-in duration-300 delay-75">
-        {/* Score gauge visual */}
-        <Card className="bg-card/45 border-border/80 lg:col-span-2">
+      {/* 2. Stats Dashboard */}
+      <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-4 mb-8 select-none animate-in fade-in duration-300 delay-75">
+        
+        {/* Score gauge visual card */}
+        <Card className="bg-card/45 border-border/80 md:col-span-2">
           <CardContent className="p-5 flex items-center gap-6">
             <div className="relative shrink-0 flex items-center justify-center h-24 w-24">
-              {/* Circular track */}
               <svg className="absolute w-full h-full transform -rotate-90">
                 <circle
                   cx="48"
@@ -182,23 +206,30 @@ export default function ReadinessAuditsPage() {
                   strokeWidth="8"
                   fill="transparent"
                 />
-                <circle
+                <motion.circle
                   cx="48"
                   cy="48"
                   r="40"
-                  className="stroke-accent transition-all duration-1000 ease-out"
+                  className="stroke-accent"
                   strokeWidth="8"
                   fill="transparent"
                   strokeDasharray={251.2}
-                  strokeDashoffset={251.2 - (251.2 * dashboardStats.avgScore) / 100}
+                  initial={{ strokeDashoffset: 251.2 }}
+                  animate={{ strokeDashoffset: 251.2 - (251.2 * stats.avgScore) / 100 }}
+                  transition={{ duration: 1, ease: "easeOut" }}
                 />
               </svg>
-              <span className="text-2xl font-black text-foreground">{dashboardStats.avgScore}%</span>
+              <span className="text-2xl font-black text-foreground">{stats.avgScore}%</span>
             </div>
             <div className="space-y-1">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase">
-                Aggregate Readiness
-              </span>
+              <div className="flex items-center gap-2.5">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase">
+                  Aggregate Readiness
+                </span>
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${stats.riskColor}`}>
+                  {stats.riskLevel}
+                </span>
+              </div>
               <h3 className="text-lg font-bold text-foreground">Family Readiness Level</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 Evaluated average preparedness across all audited scenarios.
@@ -214,7 +245,7 @@ export default function ReadinessAuditsPage() {
               <span className="text-[10px] font-bold text-muted-foreground uppercase">
                 Audits Conducted
               </span>
-              <h3 className="text-2xl font-extrabold text-foreground">{dashboardStats.auditedCount}</h3>
+              <h3 className="text-2xl font-extrabold text-foreground">{stats.auditedCount}</h3>
               <p className="text-[10px] text-muted-foreground leading-normal">
                 Total event scenarios evaluated.
               </p>
@@ -232,7 +263,7 @@ export default function ReadinessAuditsPage() {
               <span className="text-[10px] font-bold text-muted-foreground uppercase">
                 Warnings Flagged
               </span>
-              <h3 className="text-2xl font-extrabold text-rose-500">{dashboardStats.warningCount}</h3>
+              <h3 className="text-2xl font-extrabold text-rose-500">{stats.warningCount}</h3>
               <p className="text-[10px] text-muted-foreground leading-normal">
                 Expired compliance documents.
               </p>
@@ -244,79 +275,121 @@ export default function ReadinessAuditsPage() {
         </Card>
       </div>
 
-      {/* 3. Past Assessments Table List */}
-      <Card className="animate-in fade-in duration-300 delay-100 border-border/80 bg-card/10">
-        <CardHeader className="select-none">
-          <CardTitle className="text-base font-bold">Past Assessments</CardTitle>
-          <CardDescription>
-            History log of previous readiness scans. Click a row to view the compliance checklist.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {assessmentsLoading ? (
-            <div className="space-y-2 select-none">
-              {[1, 2].map((i) => <div key={i} className="h-10 bg-secondary/20 rounded-lg animate-pulse" />)}
-            </div>
-          ) : pastAssessments.length === 0 ? (
-            <div className="text-center py-10 select-none">
-              <ShieldAlert className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2.5" />
-              <p className="text-xs text-muted-foreground">No assessments run in this family workspace yet.</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto rounded-xl border border-border bg-card/30">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-border bg-secondary/10 text-muted-foreground font-semibold select-none">
-                    <th className="py-2.5 px-3.5">Life Event scenario</th>
-                    <th className="py-2.5 px-3.5">Assigned Target</th>
-                    <th className="py-2.5 px-3.5">Score</th>
-                    <th className="py-2.5 px-3.5">Readiness Level</th>
-                    <th className="py-2.5 px-3.5">Date Assessed</th>
-                    <th className="py-2.5 px-3.5 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/25">
-                  {pastAssessments.map((item) => {
-                    const memberName = members.find((m) => m.id === item.familyMemberId)?.fullName || "Whole Workspace";
-                    const eventName = lifeEvents.find((e) => e.id === item.lifeEventId)?.name || "Compliance Evaluation";
-
-                    return (
-                      <tr
-                        key={item.id}
-                        className="hover:bg-secondary/10 cursor-pointer transition-colors"
-                        onClick={() => setReportTarget(item)}
-                      >
-                        <td className="py-3 px-3.5 font-bold text-foreground truncate max-w-[200px]">
-                          {eventName}
-                        </td>
-                        <td className="py-3 px-3.5 text-muted-foreground font-semibold">
-                          {memberName}
-                        </td>
-                        <td className="py-3 px-3.5 text-foreground font-extrabold">
-                          {item.readinessScore}%
-                        </td>
-                        <td className="py-3 px-3.5">{getLevelBadge(item.readinessLevel)}</td>
-                        <td className="py-3 px-3.5 text-muted-foreground font-medium select-none">
-                          {new Date(item.assessedAt || item.createdAt).toLocaleDateString()}
-                        </td>
-                        <td className="py-3 px-3.5 text-right" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => setReportTarget(item)}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-secondary/40 text-[11px] font-bold text-muted-foreground hover:text-foreground hover:bg-secondary transition-all outline-none"
-                          >
-                            View Report
-                            <ChevronRight className="h-3 w-3" />
-                          </button>
-                        </td>
+      {/* 3. AI recommendations & Past assessments layout */}
+      <div className="grid gap-6 lg:grid-cols-3 mb-8 animate-in fade-in duration-300 delay-100">
+        
+        {/* Past Assessments Table list */}
+        <div className="lg:col-span-2 space-y-4">
+          <Card className="border-border/80 bg-card/10">
+            <CardHeader className="select-none">
+              <CardTitle className="text-base font-bold">Past Assessments</CardTitle>
+              <CardDescription>
+                History log of previous readiness scans. Click a row to view the compliance checklist.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {assessmentsLoading ? (
+                <div className="space-y-2 select-none">
+                  {[1, 2].map((i) => <div key={i} className="h-10 bg-secondary/20 rounded-lg animate-pulse" />)}
+                </div>
+              ) : pastAssessments.length === 0 ? (
+                <div className="text-center py-10 select-none">
+                  <ShieldAlert className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2.5" />
+                  <p className="text-xs text-muted-foreground">No assessments run in this family workspace yet.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-xl border border-border bg-card/30">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-border bg-secondary/10 text-muted-foreground font-semibold select-none">
+                        <th className="py-2.5 px-3.5">Life Event scenario</th>
+                        <th className="py-2.5 px-3.5">Target</th>
+                        <th className="py-2.5 px-3.5">Score</th>
+                        <th className="py-2.5 px-3.5">Status</th>
+                        <th className="py-2.5 px-3.5 text-right">Actions</th>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    </thead>
+                    <tbody className="divide-y divide-border/25">
+                      {pastAssessments.map((item) => {
+                        const memberName = members.find((m) => m.id === item.familyMemberId)?.fullName || "Whole Workspace";
+                        const eventName = lifeEvents.find((e) => e.id === item.lifeEventId)?.name || "Compliance Evaluation";
+
+                        return (
+                          <tr
+                            key={item.id}
+                            className="hover:bg-secondary/10 cursor-pointer transition-colors"
+                            onClick={() => setReportTarget(item)}
+                          >
+                            <td className="py-3 px-3.5 font-bold text-foreground truncate max-w-[150px]">
+                              {eventName}
+                            </td>
+                            <td className="py-3 px-3.5 text-muted-foreground font-semibold">
+                              {memberName}
+                            </td>
+                            <td className="py-3 px-3.5 text-foreground font-extrabold">
+                              {item.readinessScore}%
+                            </td>
+                            <td className="py-3 px-3.5">{getLevelBadge(item.readinessLevel)}</td>
+                            <td className="py-3 px-3.5 text-right font-medium" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => setReportTarget(item)}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-secondary/40 text-[11px] font-bold text-muted-foreground hover:text-foreground hover:bg-secondary transition-all outline-none"
+                              >
+                                View Report
+                                <ChevronRight className="h-3 w-3" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* AI Recommendations panel */}
+        <div>
+          <Card className="border-indigo-500/20 bg-indigo-500/[0.01] shadow-glow h-full">
+            <CardHeader className="select-none">
+              <span className="flex items-center gap-1.5 text-xs font-bold text-indigo-400">
+                <Cpu className="h-4 w-4" />
+                AI Recommendations
+              </span>
+              <CardDescription className="text-xs">
+                Suggested actions compiled from missing compliance document targets.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {aiRecommendations.length === 0 ? (
+                <div className="text-center py-6 text-xs text-muted-foreground select-none">
+                  No pending document recommendations. Your family readiness looks strong!
+                </div>
+              ) : (
+                aiRecommendations.map((rec) => (
+                  <div
+                    key={rec.id}
+                    className="p-3 border border-border/80 bg-card/45 rounded-xl text-xs space-y-1.5 hover:border-indigo-500/25 hover:shadow-glow/5 transition-all"
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="font-extrabold text-foreground">{rec.title}</span>
+                      <span className="text-[9px] text-muted-foreground/60 uppercase font-bold">
+                        {rec.category}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground leading-relaxed">
+                      {rec.description}
+                    </p>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+      </div>
 
       {/* WIZARD DIALOG MODAL */}
       <Dialog
@@ -409,7 +482,9 @@ export default function ReadinessAuditsPage() {
                 <p className="text-[10px] mt-1">
                   This scenario scans for:{" "}
                   <strong>
-                    {selectedEvent?.expectedDocumentRules?.requiredCategories?.join(", ") || "core documents"}
+                    {Array.isArray((selectedEvent?.expectedDocumentRules as Record<string, unknown>)?.requiredCategories)
+                      ? ((selectedEvent?.expectedDocumentRules as Record<string, unknown>)?.requiredCategories as string[]).join(", ")
+                      : "core documents"}
                   </strong>
                 </p>
               </div>
@@ -535,9 +610,26 @@ export default function ReadinessAuditsPage() {
               key="step-4"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="space-y-5 text-center"
+              className="space-y-5 text-center relative overflow-hidden"
             >
-              <div className="h-12 w-12 rounded-full bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center mx-auto text-emerald-500">
+              {/* Confetti celebration dots layout */}
+              <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
+                {[...Array(6)].map((_, i) => (
+                  <span
+                    key={i}
+                    className="absolute bg-accent rounded-full animate-ping opacity-45"
+                    style={{
+                      height: `${Math.random() * 8 + 4}px`,
+                      width: `${Math.random() * 8 + 4}px`,
+                      top: `${Math.random() * 100}%`,
+                      left: `${Math.random() * 100}%`,
+                      animationDuration: `${Math.random() * 2 + 1}s`,
+                    }}
+                  />
+                ))}
+              </div>
+
+              <div className="h-12 w-12 rounded-full bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center mx-auto text-emerald-500 shadow-glow/10">
                 <CheckCircle className="h-6 w-6" />
               </div>
               <div>
@@ -547,7 +639,6 @@ export default function ReadinessAuditsPage() {
                 </p>
               </div>
 
-              {/* Gauge Score */}
               <div className="p-4 border border-border bg-secondary/15 rounded-xl text-xs space-y-2.5 text-left max-h-[220px] overflow-y-auto">
                 <div className="flex justify-between py-1 border-b border-border/30">
                   <span className="text-muted-foreground">Preparedness Rating</span>
@@ -578,7 +669,7 @@ export default function ReadinessAuditsPage() {
 
               <div className="flex justify-end pt-4 border-t border-border/20">
                 <Button size="sm" onClick={() => setWizardOpen(false)}>
-                  Close Wizard & View History
+                  Close Wizard
                 </Button>
               </div>
             </motion.div>
@@ -603,7 +694,7 @@ export default function ReadinessAuditsPage() {
                 <h3 className="text-2xl font-black text-foreground">{reportTarget.readinessScore}%</h3>
               </div>
               <div className="text-center space-y-1 border-r border-border/40">
-                <span className="text-[9px] font-bold text-muted-foreground uppercase font-sans">Readiness Rating</span>
+                <span className="text-[9px] font-bold text-muted-foreground uppercase">Readiness Rating</span>
                 <div className="flex justify-center mt-1">{getLevelBadge(reportTarget.readinessLevel)}</div>
               </div>
               <div className="text-center space-y-1">
@@ -664,7 +755,7 @@ export default function ReadinessAuditsPage() {
               </div>
             </div>
 
-            {/* Expirations alert section */}
+            {/* Expirations warning section */}
             {reportTarget.expiryWarnings?.length > 0 && (
               <div className="space-y-2 border-t border-border/25 pt-3.5">
                 <h5 className="font-bold text-rose-500 flex items-center gap-1">
