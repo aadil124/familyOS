@@ -116,3 +116,50 @@ export interface HealthResponseDto {
   service: string;
   version: string;
 }
+
+export interface UploadSignatureResponseDto {
+  signature: string;
+  timestamp: number;
+  apiKey: string;
+  cloudName: string;
+  folder: string;
+  publicId: string;
+}
+
+export interface DownloadUrlResponseDto {
+  downloadUrl: string;
+}
+
+export interface OcrResultResponseDto {
+  id: string;
+  documentId: string;
+  provider: string;
+  providerVersion: string;
+  status: "PENDING" | "PROCESSING" | "SUCCESS" | "FAILED";
+  extractedText?: string | null;
+  confidenceScore?: number | null;
+  failureReason?: string | null;
+  processedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AiAnalysisResponseDto {
+  id: string;
+  documentId: string;
+  provider: string;
+  providerVersion: string;
+  status: "PENDING" | "PROCESSING" | "SUCCESS" | "FAILED";
+  detectedDocumentType?: string | null;
+  extractedFields?: Record<string, unknown> | null;
+  nameOnDocument?: string | null;
+  addressOnDocument?: string | null;
+  issuedDate?: string | null;
+  expiryDate?: string | null;
+  confidenceScore?: number | null;
+  mismatchFlags?: unknown;
+  analysisSummary?: string | null;
+  analyzedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

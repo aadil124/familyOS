@@ -8,6 +8,11 @@ import {
   ReadinessAssessmentResponseDto,
   NotificationResponseDto,
   HealthResponseDto,
+  DocumentCategoryResponseDto,
+  UploadSignatureResponseDto,
+  DownloadUrlResponseDto,
+  OcrResultResponseDto,
+  AiAnalysisResponseDto,
 } from "./types";
 
 export const dashboardKeys = {
@@ -363,5 +368,147 @@ export function useDeleteFamilyMemberMutation(familyId?: string) {
     },
   });
 }
+
+// 9. Document Vault CRUD, OCR & AI queries & mutations
+export function useDocumentCategoriesQuery() {
+  return useQuery({
+    queryKey: ["document-categories"],
+    queryFn: async (): Promise<DocumentCategoryResponseDto[]> => {
+      const response = await api.get<DocumentCategoryResponseDto[]>("/v1/families/placeholder/documents/categories");
+      return response.data;
+    },
+  });
+}
+
+export function useUploadSignatureMutation(familyId?: string) {
+  return useMutation({
+    mutationFn: async (): Promise<UploadSignatureResponseDto> => {
+      const response = await api.post<UploadSignatureResponseDto>(
+        `/v1/families/${familyId}/documents/upload-signature`
+      );
+      return response.data;
+    },
+  });
+}
+
+export function useRegisterDocumentMutation(familyId?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: {
+      storageAssetId: string;
+      originalFileName: string;
+      fileType: string;
+      fileSize?: number;
+      displayName?: string;
+      familyMemberId?: string;
+      categoryId?: string;
+    }): Promise<DocumentResponseDto> => {
+      const response = await api.post<DocumentResponseDto>(`/v1/families/${familyId}/documents`, payload);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.documents(familyId) });
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.families() });
+    },
+  });
+}
+
+export function useDocumentQuery(familyId?: string, documentId?: string) {
+  return useQuery({
+    queryKey: ["document", familyId, documentId],
+    queryFn: async (): Promise<DocumentResponseDto> => {
+      const response = await api.get<DocumentResponseDto>(`/v1/families/${familyId}/documents/${documentId}`);
+      return response.data;
+    },
+    enabled: !!familyId && !!documentId,
+  });
+}
+
+export function useUpdateDocumentMetadataMutation(familyId?: string, documentId?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: {
+      displayName?: string;
+      familyMemberId?: string | null;
+      categoryId?: string | null;
+    }): Promise<DocumentResponseDto> => {
+      const response = await api.patch<DocumentResponseDto>(
+        `/v1/families/${familyId}/documents/${documentId}/metadata`,
+        payload
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["document", familyId, documentId] });
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.documents(familyId) });
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.families() });
+    },
+  });
+}
+
+export function useDownloadUrlQuery(familyId?: string, documentId?: string, enabled = false) {
+  return useQuery({
+    queryKey: ["document-download", familyId, documentId],
+    queryFn: async (): Promise<DownloadUrlResponseDto> => {
+      const response = await api.get<DownloadUrlResponseDto>(
+        `/v1/families/${familyId}/documents/${documentId}/download`
+      );
+      return response.data;
+    },
+    enabled: !!familyId && !!documentId && enabled,
+    staleTime: 0, // Force fresh temporary URL on every retrieve request
+  });
+}
+
+export function useDeleteDocumentMutation(familyId?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (documentId: string): Promise<void> => {
+      await api.delete(`/v1/families/${familyId}/documents/${documentId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.documents(familyId) });
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.families() });
+    },
+  });
+}
+
+export function useDocumentOcrQuery(familyId?: string, documentId?: string) {
+  return useQuery({
+    queryKey: ["document-ocr", familyId, documentId],
+    queryFn: async (): Promise<OcrResultResponseDto> => {
+      const response = await api.get<OcrResultResponseDto>(
+        `/v1/families/${familyId}/documents/${documentId}/ocr`
+      );
+      return response.data;
+    },
+    enabled: !!familyId && !!documentId,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === "PENDING" || status === "PROCESSING" ? 3000 : false;
+    },
+  });
+}
+
+export function useDocumentAnalysisQuery(familyId?: string, documentId?: string) {
+  return useQuery({
+    queryKey: ["document-analysis", familyId, documentId],
+    queryFn: async (): Promise<AiAnalysisResponseDto> => {
+      const response = await api.get<AiAnalysisResponseDto>(
+        `/v1/families/${familyId}/documents/${documentId}/analysis`
+      );
+      return response.data;
+    },
+    enabled: !!familyId && !!documentId,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === "PENDING" || status === "PROCESSING" ? 3000 : false;
+    },
+  });
+}
+
 
 
