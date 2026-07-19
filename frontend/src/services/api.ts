@@ -56,7 +56,7 @@ export const setRememberMeSetting = (val: boolean) => {
 
 // Create Axios Instance
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5500/api",
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "https://familyos-hzf7.onrender.com/api",
   headers: {
     "Content-Type": "application/json",
   },
