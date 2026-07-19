@@ -19,6 +19,7 @@ export class DocumentsRepository {
       where: { id },
       include: {
         category: true,
+        documentAnalysis: true,
       },
     });
   }
@@ -28,6 +29,7 @@ export class DocumentsRepository {
       where: params.where,
       include: {
         category: true,
+        documentAnalysis: true,
       },
     });
   }
@@ -45,6 +47,7 @@ export class DocumentsRepository {
       orderBy: params.orderBy,
       include: {
         category: true,
+        documentAnalysis: true,
       },
     });
   }

@@ -95,6 +95,7 @@ export class ReadinessService {
     const availableDocsList: any[] = [];
     const missingDocsList: string[] = [];
     const expiryWarningsList: any[] = [];
+    const mismatchWarningsList: any[] = [];
 
     for (const key of requiredKeys) {
       const matchingCategory = categories.find(
@@ -126,6 +127,27 @@ export class ReadinessService {
               matchingDoc.expiresAt,
             ).toLocaleDateString()}`,
           });
+        }
+
+        // Check for name/address mismatches
+        if (matchingDoc.documentAnalysis && matchingDoc.documentAnalysis.mismatchFlags) {
+          const checks = (matchingDoc.documentAnalysis.mismatchFlags as any).checks;
+          if (checks) {
+            if (checks.name && checks.name.matched === false) {
+              mismatchWarningsList.push({
+                documentId: matchingDoc.id,
+                displayName: matchingDoc.displayName,
+                message: `Name mismatch detected in "${matchingDoc.displayName}".`,
+              });
+            }
+            if (checks.address && checks.address.matched === false) {
+              mismatchWarningsList.push({
+                documentId: matchingDoc.id,
+                displayName: matchingDoc.displayName,
+                message: `Address mismatch detected in "${matchingDoc.displayName}".`,
+              });
+            }
+          }
         }
       } else {
         missingDocsList.push(categoryName);
@@ -168,7 +190,7 @@ export class ReadinessService {
       readinessLevel: level,
       availableDocuments: availableDocsList as any,
       missingDocuments: missingDocsList as any,
-      mismatchWarnings: [] as any, // Mismatches default empty, left as design decision
+      mismatchWarnings: mismatchWarningsList as any,
       expiryWarnings: expiryWarningsList as any,
       nextSteps,
       processSummary: event.description || 'Proceed with your Event Preparation.',
