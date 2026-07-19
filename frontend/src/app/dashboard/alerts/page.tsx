@@ -11,6 +11,7 @@ import {
   useMarkNotificationReadMutation,
   useDocumentsQuery,
 } from "@/features/dashboard/services/queries";
+import { NotificationResponseDto } from "@/features/dashboard/services/types";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BellRing,
@@ -30,6 +31,11 @@ import {
   Bell,
   Activity,
   RefreshCw,
+  X,
+  FileText,
+  AlertTriangle,
+  Info,
+  CheckCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -51,11 +57,12 @@ export default function NotificationsCenterPage() {
 
   // --- Filter states ---
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "unread" | "read">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "unread" | "read">("unread");
   const [priorityFilter, setPriorityFilter] = useState<"all" | "critical" | "warning" | "info">("all");
   const [page, setPage] = useState(1);
   const limit = 10;
 
+  // Fetch in-app notifications
   const { data: notificationsData, isLoading: alertsLoading, refetch: refetchAlerts } =
     useNotificationsQuery(familyId, { page, limit });
   const rawNotifications = useMemo(() => notificationsData?.data || [], [notificationsData]);
@@ -85,19 +92,16 @@ export default function NotificationsCenterPage() {
     return rawNotifications
       .filter((item) => !dismissedIds.includes(item.id))
       .filter((item) => {
-        // Search filter
         const matchSearch =
           item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           item.message.toLowerCase().includes(searchQuery.toLowerCase());
 
-        // Status filter
         const isRead = !!item.readAt;
         const matchStatus =
           statusFilter === "all" ||
           (statusFilter === "read" && isRead) ||
           (statusFilter === "unread" && !isRead);
 
-        // Priority filter
         const matchPriority =
           priorityFilter === "all" || item.severity.toLowerCase() === priorityFilter;
 
@@ -105,7 +109,7 @@ export default function NotificationsCenterPage() {
       });
   }, [rawNotifications, dismissedIds, searchQuery, statusFilter, priorityFilter]);
 
-  // Unread badge count
+  // Unread count
   const unreadCount = useMemo(() => {
     return rawNotifications.filter((item) => !item.readAt && !dismissedIds.includes(item.id)).length;
   }, [rawNotifications, dismissedIds]);
@@ -134,7 +138,7 @@ export default function NotificationsCenterPage() {
       return;
     }
     const newRem: CustomReminder = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: Math.random().toString(36).substring(2, 11),
       title: newReminderTitle,
       dueDate: newReminderDate,
       priority: newReminderPriority,
@@ -165,7 +169,7 @@ export default function NotificationsCenterPage() {
     const updated = customReminders.map((rem) => {
       if (rem.id === id) {
         const d = new Date(rem.dueDate);
-        d.setDate(d.getDate() + 7); // Add 7 days
+        d.setDate(d.getDate() + 7);
         return { ...rem, dueDate: d.toISOString().split("T")[0] };
       }
       return rem;
@@ -233,13 +237,6 @@ export default function NotificationsCenterPage() {
       setPrefInApp(p.inApp ?? true);
       setPrefFrequency(p.frequency ?? "daily");
       setPrefQuietHours(p.quietHours ?? false);
-    } else {
-      setPrefEmail(true);
-      setPrefPush(true);
-      setPrefSms(false);
-      setPrefInApp(true);
-      setPrefFrequency("daily");
-      setPrefQuietHours(false);
     }
   }, [familyId]);
 
@@ -256,6 +253,63 @@ export default function NotificationsCenterPage() {
     toast.success("Notification preferences saved successfully!");
   };
 
+  // Drawer details target
+  const [drawerAlert, setDrawerAlert] = useState<NotificationResponseDto | null>(null);
+
+  const getPriorityStyles = (p: string) => {
+    switch (p.toLowerCase()) {
+      case "critical":
+        return {
+          badge: "bg-rose-500/10 border-rose-500/20 text-rose-500",
+          cardBorder: "border-l-4 border-l-rose-500 border-border/70",
+          icon: <AlertOctagon className="h-4 w-4 text-rose-500" />,
+        };
+      case "warning":
+        return {
+          badge: "bg-amber-500/10 border-amber-500/20 text-amber-500",
+          cardBorder: "border-l-4 border-l-amber-500 border-border/70",
+          icon: <AlertTriangle className="h-4 w-4 text-amber-500" />,
+        };
+      default:
+        return {
+          badge: "bg-indigo-500/10 border-indigo-500/20 text-indigo-400",
+          cardBorder: "border-l-4 border-l-indigo-500 border-border/70",
+          icon: <Info className="h-4 w-4 text-indigo-400" />,
+        };
+    }
+  };
+
+  // Get countdown string and color
+  const getCountdownChip = (dueDate: string) => {
+    const diff = new Date(dueDate).getTime() - new Date().getTime();
+    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    if (days < 0) {
+      return (
+        <span className="inline-flex items-center gap-1 rounded bg-rose-500/10 px-1.5 py-0.5 text-[9px] font-black text-rose-500 select-none">
+          Overdue
+        </span>
+      );
+    } else if (days === 0) {
+      return (
+        <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-black text-amber-500 select-none">
+          Due Today
+        </span>
+      );
+    } else if (days <= 7) {
+      return (
+        <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-black text-amber-500 select-none">
+          {days}d left
+        </span>
+      );
+    } else {
+      return (
+        <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-black text-emerald-400 select-none">
+          {days}d left
+        </span>
+      );
+    }
+  };
+
   const handleMarkAllRead = async () => {
     const unreadVisible = filteredNotifications.filter((n) => !n.readAt);
     if (unreadVisible.length === 0) return;
@@ -266,32 +320,6 @@ export default function NotificationsCenterPage() {
       refetchAlerts();
     } catch {
       toast.error("Failed to mark all as read.");
-    }
-  };
-
-  const getPriorityBadge = (p: string) => {
-    switch (p.toLowerCase()) {
-      case "critical":
-        return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold text-rose-500 border border-rose-500/20 select-none">
-            <AlertOctagon className="h-3 w-3 animate-pulse" />
-            Critical
-          </span>
-        );
-      case "warning":
-        return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-500 border border-amber-500/20 select-none">
-            <Clock className="h-3 w-3" />
-            Warning
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold text-blue-500 border border-blue-500/20 select-none">
-            <Bell className="h-3 w-3" />
-            Info
-          </span>
-        );
     }
   };
 
@@ -345,8 +373,11 @@ export default function NotificationsCenterPage() {
         >
           In-App Alerts
           {unreadCount > 0 && (
-            <span className="ml-1.5 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">
-              {unreadCount}
+            <span className="ml-1.5 relative inline-flex h-4 w-4">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-4 w-4 bg-rose-500 text-white text-[9px] font-black items-center justify-center">
+                {unreadCount}
+              </span>
             </span>
           )}
         </button>
@@ -373,507 +404,631 @@ export default function NotificationsCenterPage() {
       </div>
 
       {/* ACTIVE TABS SWITCH */}
-      <AnimatePresence mode="wait">
-        
-        {/* TAB 1: ALERTS BROWSER */}
-        {activeTab === "alerts" && (
-          <motion.div
-            key="tab-alerts"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="space-y-6"
-          >
-            {/* Filter controls row */}
-            <Card className="bg-card/45 border-border/80 p-4 select-none">
-              <div className="flex flex-col md:flex-row gap-4 items-center justify-between text-xs">
-                {/* Search */}
-                <div className="relative w-full md:max-w-xs">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder="Search notifications..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full h-9 rounded-lg border border-border bg-secondary/10 pl-9 pr-3 text-xs outline-none focus:border-ring/30"
-                  />
-                </div>
-
-                {/* Filters */}
-                <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                  <div className="flex items-center gap-1.5">
-                    <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="font-bold text-muted-foreground">Status:</span>
+      <div className="relative">
+        <AnimatePresence mode="wait">
+          
+          {/* TAB 1: ALERTS BROWSER */}
+          {activeTab === "alerts" && (
+            <motion.div
+              key="tab-alerts"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-6"
+            >
+              {/* Filter controls row */}
+              <Card className="bg-card/45 border-border/80 p-4 select-none">
+                <div className="flex flex-col md:flex-row gap-4 items-center justify-between text-xs">
+                  {/* Search */}
+                  <div className="relative w-full md:max-w-xs">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      placeholder="Search notifications..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full h-9 rounded-lg border border-border bg-secondary/10 pl-9 pr-3 text-xs outline-none focus:border-ring/30"
+                    />
                   </div>
-                  <div className="flex bg-secondary/20 p-0.5 rounded-lg border border-border/60">
-                    {(["all", "unread", "read"] as const).map((st) => (
-                      <button
-                        key={st}
-                        onClick={() => setStatusFilter(st)}
-                        className={`px-2.5 py-1 rounded-md text-[10px] font-black capitalize transition-all ${
-                          statusFilter === st
-                            ? "bg-card text-foreground shadow-sm"
-                            : "text-muted-foreground hover:text-foreground"
+
+                  {/* Filters */}
+                  <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                    <div className="flex items-center gap-1.5">
+                      <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="font-bold text-muted-foreground">Status:</span>
+                    </div>
+                    <div className="flex bg-secondary/20 p-0.5 rounded-lg border border-border/60">
+                      {(["all", "unread", "read"] as const).map((st) => (
+                        <button
+                          key={st}
+                          onClick={() => setStatusFilter(st)}
+                          className={`px-2.5 py-1 rounded-md text-[10px] font-black capitalize transition-all ${
+                            statusFilter === st
+                              ? "bg-card text-foreground shadow-sm"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {st}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 ml-2">
+                      <span className="font-bold text-muted-foreground">Priority:</span>
+                    </div>
+                    <select
+                      value={priorityFilter}
+                      onChange={(e) => setPriorityFilter(e.target.value as "all" | "critical" | "warning" | "info")}
+                      className="h-8 rounded-lg border border-border bg-secondary/10 px-2 text-[11px] font-bold outline-none"
+                    >
+                      <option value="all">All Priorities</option>
+                      <option value="critical">Critical Only</option>
+                      <option value="warning">Warning Only</option>
+                      <option value="info">Info Only</option>
+                    </select>
+
+                    <button
+                      onClick={handleMarkAllRead}
+                      disabled={filteredNotifications.filter((n) => !n.readAt).length === 0}
+                      className="flex items-center gap-1.5 px-3 h-8 rounded-lg border border-border/80 bg-secondary/40 text-[11px] font-bold text-muted-foreground hover:text-foreground hover:bg-secondary disabled:opacity-40 disabled:pointer-events-none transition-all ml-auto md:ml-0"
+                    >
+                      <CheckCheck className="h-3.5 w-3.5" />
+                      Mark All Read
+                    </button>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Notifications feed */}
+              {alertsLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex gap-4 p-4 border border-border bg-card/10 rounded-xl items-center animate-pulse">
+                      <div className="h-10 w-10 bg-secondary/20 rounded-lg shrink-0" />
+                      <div className="space-y-1.5 flex-1">
+                        <div className="h-3.5 w-1/4 bg-secondary/20 rounded" />
+                        <div className="h-3 w-3/4 bg-secondary/20 rounded" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : filteredNotifications.length === 0 ? (
+                <div className="text-center py-16 bg-card/25 border border-border/60 rounded-2xl select-none max-w-lg mx-auto">
+                  <BellOff className="h-12 w-12 text-muted-foreground/35 mx-auto mb-3.5" />
+                  <h4 className="text-base font-bold text-foreground">No alerts found</h4>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto leading-normal">
+                    You have caught up with all tasks. Active warning checks display here when triggered.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3 animate-in fade-in duration-300 relative border-l border-border/40 ml-5 pl-6">
+                  {filteredNotifications.map((item) => {
+                    const isRead = !!item.readAt;
+                    const style = getPriorityStyles(item.severity);
+
+                    return (
+                      <motion.div
+                        layoutId={`alert-${item.id}`}
+                        key={item.id}
+                        onClick={() => setDrawerAlert(item)}
+                        className={`p-4 border rounded-xl flex items-start gap-4 transition-all relative cursor-pointer hover:border-accent/40 ${style.cardBorder} ${
+                          isRead
+                            ? "bg-card/30 border-border/50 opacity-75 hover:opacity-100"
+                            : "bg-card/75 border-indigo-500/20 shadow-glow/5"
                         }`}
                       >
-                        {st}
-                      </button>
-                    ))}
-                  </div>
+                        {/* Timeline dot connector */}
+                        <span className="absolute -left-[31px] top-4.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-background border border-border/60 select-none">
+                          <span className={`h-1.5 w-1.5 rounded-full ${!isRead ? "bg-accent animate-pulse" : "bg-muted-foreground/30"}`} />
+                        </span>
 
-                  <div className="flex items-center gap-1.5 ml-2">
-                    <span className="font-bold text-muted-foreground">Priority:</span>
-                  </div>
-                  <select
-                    value={priorityFilter}
-                    onChange={(e) => setPriorityFilter(e.target.value as "all" | "critical" | "warning" | "info")}
-                    className="h-8 rounded-lg border border-border bg-secondary/10 px-2 text-[11px] font-bold outline-none"
-                  >
-                    <option value="all">All Priorities</option>
-                    <option value="critical">Critical Only</option>
-                    <option value="warning">Warning Only</option>
-                    <option value="info">Info Only</option>
-                  </select>
-
-                  <button
-                    onClick={handleMarkAllRead}
-                    disabled={filteredNotifications.filter((n) => !n.readAt).length === 0}
-                    className="flex items-center gap-1.5 px-3 h-8 rounded-lg border border-border/80 bg-secondary/40 text-[11px] font-bold text-muted-foreground hover:text-foreground hover:bg-secondary disabled:opacity-40 disabled:pointer-events-none transition-all ml-auto md:ml-0"
-                  >
-                    <CheckCheck className="h-3.5 w-3.5" />
-                    Mark All Read
-                  </button>
-                </div>
-              </div>
-            </Card>
-
-            {/* Notifications feed */}
-            {alertsLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-16 bg-secondary/10 rounded-xl animate-pulse" />
-                ))}
-              </div>
-            ) : filteredNotifications.length === 0 ? (
-              <div className="text-center py-16 bg-card/25 border border-border/60 rounded-2xl select-none">
-                <BellOff className="h-10 w-10 text-muted-foreground/45 mx-auto mb-3" />
-                <h4 className="text-sm font-bold text-foreground">All caught up!</h4>
-                <p className="text-xs text-muted-foreground mt-0.5">No notifications match your active search filter.</p>
-              </div>
-            ) : (
-              <div className="space-y-3 animate-in fade-in duration-300">
-                {filteredNotifications.map((item) => {
-                  const isRead = !!item.readAt;
-
-                  return (
-                    <motion.div
-                      layoutId={`alert-${item.id}`}
-                      key={item.id}
-                      className={`p-4 border rounded-xl flex items-start gap-4 transition-all ${
-                        isRead
-                          ? "bg-card/30 border-border/50 opacity-75 hover:opacity-100"
-                          : "bg-card/75 border-indigo-500/20 shadow-glow/5"
-                      }`}
-                    >
-                      <div className="p-2.5 rounded-lg border border-border bg-secondary/30 shrink-0 text-muted-foreground select-none">
-                        <Bell className={`h-4.5 w-4.5 ${!isRead ? "text-indigo-400 animate-bounce" : ""}`} />
-                      </div>
-
-                      <div className="space-y-1 flex-1 text-left">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h4 className="text-xs font-black text-foreground">{item.title}</h4>
-                          {getPriorityBadge(item.severity)}
-                          <span className="text-[9px] text-muted-foreground uppercase font-semibold">
-                            {item.type}
-                          </span>
+                        <div className="p-2 rounded-lg border border-border bg-secondary/35 shrink-0 text-muted-foreground select-none">
+                          {style.icon}
                         </div>
-                        <p className="text-[11px] text-muted-foreground leading-relaxed">
-                          {item.message}
-                        </p>
-                        <div className="flex items-center gap-4 text-[9px] text-muted-foreground select-none">
-                          <span>Received: {new Date(item.createdAt).toLocaleString()}</span>
-                          {item.readAt && (
-                            <span className="text-emerald-500 font-semibold">
-                              Read: {new Date(item.readAt).toLocaleString()}
+
+                        <div className="space-y-1 flex-1 text-left min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h4 className={`text-xs font-black text-foreground ${!isRead ? "text-indigo-400" : ""}`}>
+                              {item.title}
+                            </h4>
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[8px] font-extrabold uppercase border ${style.badge}`}>
+                              {item.severity}
                             </span>
+                            <span className="text-[8px] text-muted-foreground font-black uppercase tracking-wider bg-secondary/40 px-1.5 py-0.5 rounded">
+                              {item.type}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground leading-relaxed truncate">
+                            {item.message}
+                          </p>
+                          <div className="flex items-center gap-4 text-[9px] text-muted-foreground/50 select-none mt-1">
+                            <span>Received: {new Date(item.createdAt).toLocaleString()}</span>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-1.5 shrink-0 select-none" onClick={(e) => e.stopPropagation()}>
+                          {!isRead && (
+                            <button
+                              onClick={() => {
+                                markReadMutation.mutate(item.id);
+                                toast.success("Marked as read.");
+                              }}
+                              className="p-1.5 rounded-lg border border-border hover:bg-secondary text-muted-foreground hover:text-foreground transition-all outline-none"
+                              title="Mark as read"
+                            >
+                              <CheckCheck className="h-3.5 w-3.5" />
+                            </button>
                           )}
+                          <button
+                            onClick={() => handleDismissAlert(item.id)}
+                            className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-rose-500 hover:bg-rose-500/5 transition-all outline-none"
+                            title="Dismiss alert"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
                         </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex gap-1.5 shrink-0 select-none">
-                        {!isRead && (
-                          <button
-                            onClick={() => {
-                              markReadMutation.mutate(item.id);
-                              toast.success("Marked as read.");
-                            }}
-                            className="p-1.5 rounded-lg border border-border hover:bg-secondary text-muted-foreground hover:text-foreground transition-all outline-none"
-                            title="Mark as read"
-                          >
-                            <CheckCheck className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                        {item.relatedDocumentId && (
-                          <button
-                            onClick={() => (window.location.href = `/dashboard/vault/${item.relatedDocumentId}`)}
-                            className="inline-flex items-center gap-1 px-2.5 h-7 rounded-lg border border-border bg-secondary/35 text-[10px] font-bold text-muted-foreground hover:text-foreground transition-all"
-                          >
-                            View Doc
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleDismissAlert(item.id)}
-                          className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-rose-500 hover:bg-rose-500/5 transition-all outline-none"
-                          title="Dismiss notification"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Pagination Controls */}
-            {filteredNotifications.length > 0 && (
-              <div className="flex justify-between items-center select-none pt-2">
-                <span className="text-[10px] text-muted-foreground font-bold">
-                  Showing page {page} of visible alerts
-                </span>
-                <div className="flex gap-1.5">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page === 1}
-                    onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                    className="h-8 text-xs font-bold"
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={filteredNotifications.length < limit}
-                    onClick={() => setPage((p) => p + 1)}
-                    className="h-8 text-xs font-bold"
-                  >
-                    Next
-                  </Button>
+                      </motion.div>
+                    );
+                  })}
                 </div>
-              </div>
-            )}
-          </motion.div>
-        )}
+              )}
 
-        {/* TAB 2: REMINDERS TIMELINE */}
-        {activeTab === "reminders" && (
-          <motion.div
-            key="tab-reminders"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="grid gap-6 lg:grid-cols-3"
-          >
-            {/* Reminders feed */}
-            <div className="lg:col-span-2 space-y-4">
-              <Card className="border-border/80 bg-card/10">
-                <CardHeader className="select-none">
-                  <CardTitle className="text-base font-bold">Upcoming Reminders Timeline</CardTitle>
-                  <CardDescription>
-                    Expired or upcoming renewal checkpoints aggregated across digital vault registry.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  {allReminders.length === 0 ? (
-                    <div className="text-center py-16 select-none">
-                      <Clock className="h-10 w-10 text-muted-foreground/45 mx-auto mb-3" />
-                      <h4 className="text-sm font-bold text-foreground">No reminders registered</h4>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Add a custom alert renewal or upload files to get started.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="relative border-l border-border/50 ml-4 pl-6 space-y-5 animate-in fade-in duration-300">
-                      {allReminders.map((rem) => {
-                        const isExpired = new Date(rem.dueDate) < new Date();
-                        const isCompleted = "completed" in rem && (rem as CustomReminder).completed;
+              {/* Pagination Controls */}
+              {filteredNotifications.length > 0 && (
+                <div className="flex justify-between items-center select-none pt-2">
+                  <span className="text-[10px] text-muted-foreground font-bold">
+                    Showing page {page} of visible alerts
+                  </span>
+                  <div className="flex gap-1.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={page === 1}
+                      onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                      className="h-8 text-xs font-bold"
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={filteredNotifications.length < limit}
+                      onClick={() => setPage((p) => p + 1)}
+                      className="h-8 text-xs font-bold"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
 
-                        return (
-                          <div key={rem.id} className="relative group text-xs text-left">
-                            {/* Dot indicator */}
-                            <span className="absolute -left-[31px] top-1.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-card border border-border select-none">
-                              <span
-                                className={`h-1.5 w-1.5 rounded-full ${
-                                  isCompleted
-                                    ? "bg-emerald-500"
-                                    : rem.priority === "critical"
-                                    ? "bg-rose-500 animate-ping"
-                                    : rem.priority === "warning"
-                                    ? "bg-amber-500"
-                                    : "bg-blue-500"
-                                }`}
-                              />
-                            </span>
+          {/* TAB 2: REMINDERS TIMELINE */}
+          {activeTab === "reminders" && (
+            <motion.div
+              key="tab-reminders"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="grid gap-6 lg:grid-cols-3"
+            >
+              {/* Reminders list */}
+              <div className="lg:col-span-2 space-y-4">
+                <Card className="border-border/80 bg-card/10">
+                  <CardHeader className="select-none">
+                    <CardTitle className="text-base font-bold">Upcoming Reminders Timeline</CardTitle>
+                    <CardDescription>
+                      Expired or upcoming renewal checkpoints aggregated across digital vault registry.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    {allReminders.length === 0 ? (
+                      <div className="text-center py-16 select-none">
+                        <Clock className="h-10 w-10 text-muted-foreground/45 mx-auto mb-3" />
+                        <h4 className="text-sm font-bold text-foreground">No reminders registered</h4>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Add a custom alert renewal or upload files to get started.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="relative border-l border-border/50 ml-4 pl-6 space-y-5 animate-in fade-in duration-300">
+                        {allReminders.map((rem) => {
+                          const isExpired = new Date(rem.dueDate) < new Date();
+                          const isCompleted = "completed" in rem && (rem as CustomReminder).completed;
 
-                            <div className="flex gap-4 justify-between items-start">
-                              <div>
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span
-                                    className={`font-black ${
-                                      isCompleted
-                                        ? "line-through text-muted-foreground"
-                                        : isExpired
-                                        ? "text-rose-500"
-                                        : "text-foreground"
-                                    }`}
-                                  >
-                                    {rem.title}
-                                  </span>
-                                  {getPriorityBadge(rem.priority)}
-                                  {rem.isDocument && (
-                                    <span className="inline-flex items-center gap-1 rounded bg-secondary px-1.5 py-0.5 text-[8px] font-bold text-muted-foreground select-none">
-                                      Registry File
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground mt-1 select-none">
-                                  <span className="flex items-center gap-1">
-                                    <Calendar className="h-3 w-3" />
-                                    Due Date: {new Date(rem.dueDate).toLocaleDateString()}
-                                  </span>
-                                  {rem.notes && (
-                                    <span className="font-semibold text-indigo-400">
-                                      {rem.notes}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
+                          return (
+                            <div key={rem.id} className="relative group text-xs text-left">
+                              {/* Dot indicator */}
+                              <span className="absolute -left-[31px] top-1.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-card border border-border select-none">
+                                <span
+                                  className={`h-1.5 w-1.5 rounded-full ${
+                                    isCompleted
+                                      ? "bg-emerald-500"
+                                      : rem.priority === "critical"
+                                      ? "bg-rose-500 animate-ping"
+                                      : rem.priority === "warning"
+                                      ? "bg-amber-500"
+                                      : "bg-blue-500"
+                                  }`}
+                                />
+                              </span>
 
-                              {/* Actions */}
-                              <div className="flex gap-1 shrink-0 select-none opacity-45 group-hover:opacity-100 transition-opacity">
-                                {!rem.isDocument && (
-                                  <>
-                                    <button
-                                      onClick={() => handleToggleReminder(rem.id)}
-                                      className={`p-1 rounded border border-border transition-all hover:bg-secondary ${
-                                        isCompleted ? "text-emerald-500" : "text-muted-foreground"
+                              <div className="flex gap-4 justify-between items-start">
+                                <div>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span
+                                      className={`font-black ${
+                                        isCompleted
+                                          ? "line-through text-muted-foreground"
+                                          : isExpired
+                                          ? "text-rose-500"
+                                          : "text-foreground"
                                       }`}
-                                      title={isCompleted ? "Mark active" : "Mark completed"}
                                     >
-                                      <CheckCheck className="h-3.5 w-3.5" />
-                                    </button>
+                                      {rem.title}
+                                    </span>
+                                    {getCountdownChip(rem.dueDate)}
+                                    {rem.isDocument && (
+                                      <span className="inline-flex items-center gap-1 rounded bg-secondary px-1.5 py-0.5 text-[8px] font-bold text-muted-foreground select-none">
+                                        Registry File
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground mt-1 select-none">
+                                    <span className="flex items-center gap-1">
+                                      <Calendar className="h-3 w-3" />
+                                      Due Date: {new Date(rem.dueDate).toLocaleDateString()}
+                                    </span>
+                                    {rem.notes && (
+                                      <span className="font-semibold text-indigo-400">
+                                        {rem.notes}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex gap-1 shrink-0 select-none opacity-45 group-hover:opacity-100 transition-opacity">
+                                  {!rem.isDocument && (
+                                    <>
+                                      <button
+                                        onClick={() => handleToggleReminder(rem.id)}
+                                        className={`p-1.5 rounded border border-border transition-all hover:bg-secondary ${
+                                          isCompleted ? "text-emerald-500" : "text-muted-foreground"
+                                        }`}
+                                        title={isCompleted ? "Mark active" : "Mark completed"}
+                                      >
+                                        <CheckCircle className="h-3.5 w-3.5" />
+                                      </button>
+                                      <button
+                                        onClick={() => handleSnoozeReminder(rem.id)}
+                                        className="p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground transition-all"
+                                        title="Snooze 7 days"
+                                      >
+                                        <Clock className="h-3.5 w-3.5" />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteReminder(rem.id)}
+                                        className="p-1.5 rounded border border-border hover:bg-rose-500/5 hover:text-rose-500 text-muted-foreground transition-all"
+                                        title="Delete reminder"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </button>
+                                    </>
+                                  )}
+                                  {rem.isDocument && (
                                     <button
-                                      onClick={() => handleSnoozeReminder(rem.id)}
-                                      className="p-1 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground transition-all"
-                                      title="Snooze 7 days"
+                                      onClick={() => (window.location.href = `/dashboard/vault/${rem.id}`)}
+                                      className="inline-flex items-center gap-1 px-2.5 h-6.5 rounded border border-border bg-secondary/35 text-[9px] font-bold text-muted-foreground hover:text-foreground transition-all"
                                     >
-                                      <Clock className="h-3.5 w-3.5" />
+                                      Inspect File
                                     </button>
-                                    <button
-                                      onClick={() => handleDeleteReminder(rem.id)}
-                                      className="p-1 rounded border border-border hover:bg-rose-500/5 hover:text-rose-500 text-muted-foreground transition-all"
-                                      title="Delete reminder"
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </button>
-                                  </>
-                                )}
-                                {rem.isDocument && (
-                                  <button
-                                    onClick={() => (window.location.href = `/dashboard/vault/${rem.id}`)}
-                                    className="inline-flex items-center gap-1 px-2.5 h-6 rounded border border-border bg-secondary/35 text-[9px] font-bold text-muted-foreground hover:text-foreground transition-all"
-                                  >
-                                    Inspect File
-                                  </button>
-                                )}
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Sidebar stats panel */}
+              <div className="space-y-4">
+                <Card className="bg-card/45 border-border/80 select-none">
+                  <CardHeader>
+                    <CardTitle className="text-sm font-bold flex items-center gap-1.5">
+                      <Activity className="h-4.5 w-4.5 text-indigo-400" />
+                      Overview Metrics
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3.5 text-xs text-left">
+                    <div className="flex justify-between border-b border-border/30 pb-2">
+                      <span className="text-muted-foreground">Document Renewals</span>
+                      <span className="font-extrabold text-foreground">{documentExpirations.length}</span>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Dashboard Sidebar statistics */}
-            <div className="space-y-4">
-              <Card className="bg-card/45 border-border/80 select-none">
-                <CardHeader>
-                  <CardTitle className="text-sm font-bold flex items-center gap-1.5">
-                    <Activity className="h-4.5 w-4.5 text-indigo-400" />
-                    Overview Metrics
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3.5 text-xs text-left">
-                  <div className="flex justify-between border-b border-border/30 pb-2">
-                    <span className="text-muted-foreground">Document Renewals</span>
-                    <span className="font-extrabold text-foreground">{documentExpirations.length}</span>
-                  </div>
-                  <div className="flex justify-between border-b border-border/30 pb-2">
-                    <span className="text-muted-foreground">Active Custom Alerts</span>
-                    <span className="font-extrabold text-foreground">
-                      {customReminders.filter((r) => !r.completed).length}
-                    </span>
-                  </div>
-                  <div className="flex justify-between border-b border-border/30 pb-2">
-                    <span className="text-muted-foreground">Critical Status Warnings</span>
-                    <span className="font-extrabold text-rose-500">
-                      {allReminders.filter((r) => r.priority === "critical").length}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </motion.div>
-        )}
-
-        {/* TAB 3: PREFERENCES FORM */}
-        {activeTab === "preferences" && (
-          <motion.div
-            key="tab-preferences"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="max-w-2xl select-none mx-auto text-left"
-          >
-            <Card className="border-border/80 bg-card/45">
-              <CardHeader>
-                <CardTitle className="text-base font-bold flex items-center gap-2">
-                  <SlidersHorizontal className="h-5 w-5 text-indigo-400" />
-                  Delivery Settings
-                </CardTitle>
-                <CardDescription>
-                  Configure where and how frequently you receive alert notifications.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6 text-xs">
-                
-                {/* Delivery Channels */}
-                <div className="space-y-4">
-                  <h4 className="font-bold text-foreground pb-1.5 border-b border-border/40 text-xs flex items-center gap-1.5">
-                    <Sparkles className="h-4 w-4 text-indigo-400" />
-                    Delivery Channels
-                  </h4>
-                  
-                  {/* Email */}
-                  <div className="flex items-center justify-between p-3.5 border border-border bg-card/30 rounded-xl">
-                    <div className="space-y-0.5">
-                      <h5 className="font-extrabold text-foreground flex items-center gap-1.5">
-                        <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                        Email Dispatcher
-                      </h5>
-                      <p className="text-[10px] text-muted-foreground">Send weekly summaries and critical warning logs.</p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={prefEmail}
-                      onChange={(e) => setPrefEmail(e.target.checked)}
-                      className="h-4.5 w-4.5 accent-accent"
-                    />
-                  </div>
-
-                  {/* Push */}
-                  <div className="flex items-center justify-between p-3.5 border border-border bg-card/30 rounded-xl">
-                    <div className="space-y-0.5">
-                      <h5 className="font-extrabold text-foreground flex items-center gap-1.5">
-                        <Smartphone className="h-3.5 w-3.5 text-muted-foreground" />
-                        Push Notifications
-                      </h5>
-                      <p className="text-[10px] text-muted-foreground">Trigger browser alerts immediately when scans finish.</p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={prefPush}
-                      onChange={(e) => setPrefPush(e.target.checked)}
-                      className="h-4.5 w-4.5 accent-accent"
-                    />
-                  </div>
-
-                  {/* SMS */}
-                  <div className="flex items-center justify-between p-3.5 border border-border bg-card/30 rounded-xl">
-                    <div className="space-y-0.5">
-                      <h5 className="font-extrabold text-foreground flex items-center gap-1.5">
-                        <PhoneCall className="h-3.5 w-3.5 text-muted-foreground" />
-                        SMS text alerts
-                      </h5>
-                      <p className="text-[10px] text-muted-foreground">Send emergency texts directly to your phone.</p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={prefSms}
-                      onChange={(e) => setPrefSms(e.target.checked)}
-                      className="h-4.5 w-4.5 accent-accent"
-                    />
-                  </div>
-
-                  {/* In-app */}
-                  <div className="flex items-center justify-between p-3.5 border border-border bg-card/30 rounded-xl">
-                    <div className="space-y-0.5">
-                      <h5 className="font-extrabold text-foreground flex items-center gap-1.5">
-                        <Bell className="h-3.5 w-3.5 text-muted-foreground" />
-                        In-App Alerts
-                      </h5>
-                      <p className="text-[10px] text-muted-foreground">Display badge counter markers in the layout bar.</p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={prefInApp}
-                      onChange={(e) => setPrefInApp(e.target.checked)}
-                      className="h-4.5 w-4.5 accent-accent"
-                    />
-                  </div>
-                </div>
-
-                {/* Timing Configs */}
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase">Reminder Frequency</label>
-                    <select
-                      value={prefFrequency}
-                      onChange={(e) => setPrefFrequency(e.target.value)}
-                      className="w-full h-10 rounded-lg border border-border bg-secondary/20 px-3 text-xs text-foreground outline-none"
-                    >
-                      <option value="daily">Daily scans summary</option>
-                      <option value="weekly">Weekly digest scans</option>
-                      <option value="monthly">Monthly audit logs</option>
-                    </select>
-                  </div>
-
-                  {/* Quiet Hours */}
-                  <div className="flex flex-col gap-2 p-3 border border-border bg-card/10 rounded-xl">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-foreground flex items-center gap-1.5">
-                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                        Quiet Hours
+                    <div className="flex justify-between border-b border-border/30 pb-2">
+                      <span className="text-muted-foreground">Active Custom Alerts</span>
+                      <span className="font-extrabold text-foreground">
+                        {customReminders.filter((r) => !r.completed).length}
                       </span>
+                    </div>
+                    <div className="flex justify-between border-b border-border/30 pb-2">
+                      <span className="text-muted-foreground">Critical Warnings</span>
+                      <span className="font-extrabold text-rose-500">
+                        {allReminders.filter((r) => r.priority === "critical").length}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </motion.div>
+          )}
+
+          {/* TAB 3: PREFERENCES FORM */}
+          {activeTab === "preferences" && (
+            <motion.div
+              key="tab-preferences"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="max-w-2xl select-none mx-auto text-left"
+            >
+              <Card className="border-border/80 bg-card/45">
+                <CardHeader>
+                  <CardTitle className="text-base font-bold flex items-center gap-2">
+                    <SlidersHorizontal className="h-5 w-5 text-indigo-400" />
+                    Delivery Settings
+                  </CardTitle>
+                  <CardDescription>
+                    Configure where and how frequently you receive alert notifications.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6 text-xs">
+                  
+                  {/* Delivery Channels */}
+                  <div className="space-y-4">
+                    <h4 className="font-bold text-foreground pb-1.5 border-b border-border/40 text-xs flex items-center gap-1.5">
+                      <Sparkles className="h-4 w-4 text-indigo-400" />
+                      Delivery Channels
+                    </h4>
+                    
+                    {/* Email */}
+                    <div className="flex items-center justify-between p-3.5 border border-border bg-card/30 rounded-xl">
+                      <div className="space-y-0.5">
+                        <h5 className="font-extrabold text-foreground flex items-center gap-1.5">
+                          <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                          Email Dispatcher
+                        </h5>
+                        <p className="text-[10px] text-muted-foreground">Send weekly summaries and critical warning logs.</p>
+                      </div>
                       <input
                         type="checkbox"
-                        checked={prefQuietHours}
-                        onChange={(e) => setPrefQuietHours(e.target.checked)}
+                        checked={prefEmail}
+                        onChange={(e) => setPrefEmail(e.target.checked)}
                         className="h-4.5 w-4.5 accent-accent"
                       />
                     </div>
-                    <p className="text-[9px] text-muted-foreground">
-                      Mute SMS or email warnings from 10:00 PM to 7:00 AM local time.
-                    </p>
+
+                    {/* Push */}
+                    <div className="flex items-center justify-between p-3.5 border border-border bg-card/30 rounded-xl">
+                      <div className="space-y-0.5">
+                        <h5 className="font-extrabold text-foreground flex items-center gap-1.5">
+                          <Smartphone className="h-3.5 w-3.5 text-muted-foreground" />
+                          Push Notifications
+                        </h5>
+                        <p className="text-[10px] text-muted-foreground">Trigger browser alerts immediately when scans finish.</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={prefPush}
+                        onChange={(e) => setPrefPush(e.target.checked)}
+                        className="h-4.5 w-4.5 accent-accent"
+                      />
+                    </div>
+
+                    {/* SMS */}
+                    <div className="flex items-center justify-between p-3.5 border border-border bg-card/30 rounded-xl">
+                      <div className="space-y-0.5">
+                        <h5 className="font-extrabold text-foreground flex items-center gap-1.5">
+                          <PhoneCall className="h-3.5 w-3.5 text-muted-foreground" />
+                          SMS text alerts
+                        </h5>
+                        <p className="text-[10px] text-muted-foreground">Send emergency texts directly to your phone.</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={prefSms}
+                        onChange={(e) => setPrefSms(e.target.checked)}
+                        className="h-4.5 w-4.5 accent-accent"
+                      />
+                    </div>
+
+                    {/* In-app */}
+                    <div className="flex items-center justify-between p-3.5 border border-border bg-card/30 rounded-xl">
+                      <div className="space-y-0.5">
+                        <h5 className="font-extrabold text-foreground flex items-center gap-1.5">
+                          <Bell className="h-3.5 w-3.5 text-muted-foreground" />
+                          In-App Alerts
+                        </h5>
+                        <p className="text-[10px] text-muted-foreground">Display badge counter markers in the layout bar.</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={prefInApp}
+                        onChange={(e) => setPrefInApp(e.target.checked)}
+                        className="h-4.5 w-4.5 accent-accent"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Timing Configs */}
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase">Reminder Frequency</label>
+                      <select
+                        value={prefFrequency}
+                        onChange={(e) => setPrefFrequency(e.target.value)}
+                        className="w-full h-10 rounded-lg border border-border bg-secondary/20 px-3 text-xs text-foreground outline-none"
+                      >
+                        <option value="daily">Daily scans summary</option>
+                        <option value="weekly">Weekly digest scans</option>
+                        <option value="monthly">Monthly audit logs</option>
+                      </select>
+                    </div>
+
+                    {/* Quiet Hours */}
+                    <div className="flex flex-col gap-2 p-3 border border-border bg-card/10 rounded-xl">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-foreground flex items-center gap-1.5">
+                          <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                          Quiet Hours
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={prefQuietHours}
+                          onChange={(e) => setPrefQuietHours(e.target.checked)}
+                          className="h-4.5 w-4.5 accent-accent"
+                        />
+                      </div>
+                      <p className="text-[9px] text-muted-foreground">
+                        Mute SMS or email warnings from 10:00 PM to 7:00 AM local time.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-4 border-t border-border/20">
+                    <Button onClick={handleSavePreferences} className="bg-accent hover:bg-accent/80 text-white">
+                      Save Preferences
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+        </AnimatePresence>
+
+        {/* DETAILED NOTIFICATION DRAWER (SLIDE OVER) */}
+        <AnimatePresence>
+          {drawerAlert && (
+            <>
+              {/* Overlay background */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.5 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setDrawerAlert(null)}
+                className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 cursor-pointer select-none"
+              />
+
+              {/* Drawer panel */}
+              <motion.div
+                initial={{ x: "100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                className="fixed top-0 right-0 bottom-0 w-full sm:max-w-md bg-card border-l border-border/80 z-50 p-6 shadow-xl flex flex-col justify-between text-left select-all"
+              >
+                <div className="space-y-6">
+                  {/* Drawer Header */}
+                  <div className="flex items-center justify-between border-b border-border/30 pb-4 select-none">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4.5 w-4.5 text-indigo-400" />
+                      <span className="text-xs font-black text-foreground">Alert Details</span>
+                    </div>
+                    <button
+                      onClick={() => setDrawerAlert(null)}
+                      className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-all"
+                    >
+                      <X className="h-4.5 w-4.5" />
+                    </button>
+                  </div>
+
+                  {/* Drawer Content */}
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2 select-none">
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase border ${getPriorityStyles(drawerAlert.severity).badge}`}>
+                          {drawerAlert.severity}
+                        </span>
+                        <span className="text-[9px] text-muted-foreground font-black uppercase tracking-wider bg-secondary/40 px-1.5 py-0.5 rounded">
+                          {drawerAlert.type}
+                        </span>
+                      </div>
+                      <h3 className="text-sm font-black text-foreground">
+                        {drawerAlert.title}
+                      </h3>
+                    </div>
+
+                    <div className="p-4 border border-border bg-secondary/15 rounded-xl text-xs leading-relaxed text-muted-foreground">
+                      {drawerAlert.message}
+                    </div>
+
+                    <div className="space-y-2 text-[11px] text-muted-foreground border-t border-border/30 pt-4 select-none">
+                      <div className="flex justify-between">
+                        <span>Created Date</span>
+                        <span className="font-bold text-foreground">
+                          {new Date(drawerAlert.createdAt).toLocaleString()}
+                        </span>
+                      </div>
+                      {(drawerAlert.readAt) && (
+                        <div className="flex justify-between">
+                          <span>Marked Read</span>
+                          <span className="font-bold text-emerald-500">
+                            {new Date(drawerAlert.readAt).toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-4 border-t border-border/20">
-                  <Button onClick={handleSavePreferences} className="bg-accent hover:bg-accent/80 text-white">
-                    Save Preferences
+                {/* Actions bottom */}
+                <div className="border-t border-border/30 pt-4 flex gap-2 select-none">
+                  {!drawerAlert.readAt && (
+                    <Button
+                      onClick={async () => {
+                        await markReadMutation.mutateAsync(drawerAlert.id);
+                        toast.success("Alert marked as read.");
+                        refetchAlerts();
+                        setDrawerAlert(null);
+                      }}
+                      className="flex-1 bg-accent hover:bg-accent/80 text-white text-xs font-bold"
+                    >
+                      Mark as Read
+                    </Button>
+                  )}
+                  {drawerAlert.relatedDocumentId && (
+                    <Button
+                      onClick={() => (window.location.href = `/dashboard/vault/${drawerAlert.relatedDocumentId}`)}
+                      variant="outline"
+                      className="flex-1 text-xs font-bold"
+                    >
+                      View Document
+                    </Button>
+                  )}
+                  <Button
+                    onClick={() => {
+                      handleDismissAlert(drawerAlert.id);
+                      setDrawerAlert(null);
+                    }}
+                    variant="ghost"
+                    className="p-2 text-danger hover:bg-danger/5 hover:text-danger border border-transparent hover:border-danger/10"
+                    title="Dismiss alert"
+                  >
+                    <Trash2 className="h-4.5 w-4.5" />
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-
-      </AnimatePresence>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* CREATE REMINDER DIALOG MODAL */}
       <Dialog

@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useWorkspace } from "@/providers/WorkspaceProvider";
 import {
   useFamilyMembersQuery,
@@ -17,6 +18,7 @@ import { ActivityTimeline, ActivityItem } from "@/features/dashboard/components/
 import { RecentDocumentsTable } from "@/features/dashboard/components/RecentDocumentsTable";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
+import { Dialog } from "@/components/ui/Dialog";
 import {
   Sparkles,
   FileText,
@@ -29,12 +31,19 @@ import {
   ArrowRight,
   ShieldCheck,
   MessageSquareCode,
+  Play,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 export default function DashboardPage() {
   const { activeFamily } = useWorkspace();
   const familyId = activeFamily?.id;
   const router = useRouter();
+
+  // Tour States
+  const [tourOpen, setTourOpen] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
 
   // 1. Fetch backend resources for the selected family workspace
   const { data: members = [], isLoading: membersLoading } = useFamilyMembersQuery(familyId);
@@ -188,9 +197,22 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl mt-1.5 select-none">
             Dashboard Overview
           </h1>
-          <p className="text-xs text-muted-foreground mt-1 select-none">
-            Logged in: <span className="font-semibold text-foreground">{currentDateFormatted}</span>
-          </p>
+          <div className="flex flex-wrap items-center gap-3 mt-1 select-none">
+            <p className="text-xs text-muted-foreground">
+              Logged in: <span className="font-semibold text-foreground">{currentDateFormatted}</span>
+            </p>
+            <span className="text-muted-foreground/30 text-xs hidden sm:inline">•</span>
+            <button
+              onClick={() => {
+                setTourStep(0);
+                setTourOpen(true);
+              }}
+              className="inline-flex items-center gap-1 text-xs font-black text-accent hover:text-accent/80 hover:underline transition-all"
+            >
+              <Play className="h-3 w-3 fill-accent" />
+              Start Guided Product Tour
+            </button>
+          </div>
         </div>
 
         {/* Selected Workspace summary card */}
@@ -249,13 +271,13 @@ export default function DashboardPage() {
                 <CardTitle className="text-base font-bold">Recent Documents</CardTitle>
                 <CardDescription>Documents recently added to your vault</CardDescription>
               </div>
-              <a
+              <Link
                 href="/dashboard/vault"
                 className="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline outline-none"
               >
                 View Vault
                 <ArrowRight className="h-3 w-3" />
-              </a>
+              </Link>
             </CardHeader>
             <CardContent>
               <RecentDocumentsTable
@@ -404,6 +426,94 @@ export default function DashboardPage() {
 
         </div>
       </div>
+
+      {/* Guided Product Tour Dialog */}
+      <Dialog
+        isOpen={tourOpen}
+        onClose={() => setTourOpen(false)}
+        title={
+          tourStep === 0 ? "Welcome to FamilyOS!" :
+          tourStep === 1 ? "Dynamic Family Switcher" :
+          tourStep === 2 ? "Digital Vault Scans" :
+          tourStep === 3 ? "Readiness Assessments" :
+          "Alerts & Notifications"
+        }
+        description="Guided product tour slideshow"
+        className="max-w-sm"
+      >
+        <div className="text-center space-y-6 select-none relative pt-2">
+          {/* Icon */}
+          <div className="flex justify-center">
+            <div className="h-16 w-16 bg-accent/10 border border-accent/20 rounded-full flex items-center justify-center">
+              {tourStep === 0 && <Sparkles className="h-8 w-8 text-accent animate-pulse" />}
+              {tourStep === 1 && <FolderOpen className="h-8 w-8 text-indigo-400" />}
+              {tourStep === 2 && <FileText className="h-8 w-8 text-indigo-400" />}
+              {tourStep === 3 && <Award className="h-8 w-8 text-indigo-400" />}
+              {tourStep === 4 && <Bell className="h-8 w-8 text-indigo-400" />}
+            </div>
+          </div>
+
+          {/* Description */}
+          <p className="text-xs text-muted-foreground leading-relaxed px-2">
+            {tourStep === 0 && "FamilyOS is a premium portal designed to manage family workspaces, secure legal records, and analyze compliance indicators."}
+            {tourStep === 1 && "Instantly create, switch, and filter context profiles dynamically using the Workspace Switcher in the top navigation panel."}
+            {tourStep === 2 && "Upload folders, rotate files, zoom PDF previews, and run automated OCR character recognition workflows."}
+            {tourStep === 3 && "Conduct compliance audits for milestones like Buying a House or School Enrollments with readiness circular gauges."}
+            {tourStep === 4 && "Track document expiries and alerts with calculated count chips indicating remaining days."}
+          </p>
+
+          {/* Pagination Indicators */}
+          <div className="flex justify-center gap-1.5 pt-1">
+            {[0, 1, 2, 3, 4].map((idx) => (
+              <span
+                key={idx}
+                className={`h-1.5 rounded-full transition-all duration-200 ${
+                  tourStep === idx ? "w-4 bg-accent" : "w-1.5 bg-secondary/80"
+                }`}
+              />
+            ))}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2 pt-2">
+            {tourStep > 0 ? (
+              <Button
+                variant="outline"
+                onClick={() => setTourStep((prev) => prev - 1)}
+                className="flex-1 text-xs font-bold"
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Back
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                onClick={() => setTourOpen(false)}
+                className="flex-1 text-xs font-bold text-muted-foreground"
+              >
+                Dismiss
+              </Button>
+            )}
+
+            {tourStep < 4 ? (
+              <Button
+                onClick={() => setTourStep((prev) => prev + 1)}
+                className="flex-1 bg-accent hover:bg-accent/80 text-white text-xs font-bold"
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            ) : (
+              <Button
+                onClick={() => setTourOpen(false)}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
+              >
+                Complete Tour
+              </Button>
+            )}
+          </div>
+        </div>
+      </Dialog>
     </PageContainer>
   );
 }
