@@ -11,16 +11,19 @@ import {
 } from "@/features/dashboard/services/queries";
 import { ConversationSidebar } from "@/features/dashboard/components/ConversationSidebar";
 import { ChatLayout } from "@/features/dashboard/components/ChatLayout";
-import { AIMessage } from "@/features/dashboard/services/types";
+import { AIMessage, AIConversation } from "@/features/dashboard/services/types";
 import { Menu, X, Cpu } from "lucide-react";
 import { toast } from "sonner";
+
+const EMPTY_CONVERSATIONS: AIConversation[] = [];
+const EMPTY_MESSAGES: AIMessage[] = [];
 
 export default function ChatPage() {
   const { activeFamily } = useWorkspace();
   const familyId = activeFamily?.id;
 
   // 1. Fetch conversations in family
-  const { data: conversations = [], isLoading: listLoading, refetch: refetchConversations } =
+  const { data: conversations = EMPTY_CONVERSATIONS, isLoading: listLoading, refetch: refetchConversations } =
     useConversationsQuery(familyId);
 
   // Mutations
@@ -31,7 +34,7 @@ export default function ChatPage() {
 
   // 2. Fetch messages for active conversation
   const {
-    data: dbMessages = [],
+    data: dbMessages = EMPTY_MESSAGES,
     isLoading: messagesLoading,
     refetch: refetchMessages,
   } = useMessagesQuery(familyId, activeConversationId || undefined);
