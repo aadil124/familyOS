@@ -27,6 +27,7 @@ import {
   Sun,
   Moon,
   FolderHeart,
+  Sparkles,
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -88,6 +89,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: "Family Workspaces", href: "/dashboard/families", icon: <FolderHeart className="h-4.5 w-4.5" /> },
     { name: "Family Members", href: "/dashboard/family", icon: <Users className="h-4.5 w-4.5" /> },
     { name: "Family Vault", href: "/dashboard/vault", icon: <FolderLock className="h-4.5 w-4.5" /> },
+    { name: "Document Intelligence", href: "/dashboard/intelligence", icon: <Sparkles className="h-4.5 w-4.5" /> },
     { name: "Readiness Audits", href: "/dashboard/audits", icon: <CalendarCheck2 className="h-4.5 w-4.5" /> },
     { name: "AI Chat Assistant", href: "/dashboard/chat", icon: <MessageSquareCode className="h-4.5 w-4.5" /> },
     { name: "Notifications", href: "/dashboard/alerts", icon: <BellRing className="h-4.5 w-4.5" /> },
