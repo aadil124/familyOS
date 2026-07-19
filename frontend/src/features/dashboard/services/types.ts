@@ -132,7 +132,8 @@ export interface UploadSignatureResponseDto {
   apiKey: string;
   cloudName: string;
   folder: string;
-  publicId: string;
+  publicId?: string;
+  type: string;
 }
 
 export interface DownloadUrlResponseDto {

@@ -122,7 +122,10 @@ export function UploadWidget({ onSuccess, onCancel }: UploadWidgetProps) {
       formData.append("timestamp", signatureData.timestamp.toString());
       formData.append("signature", signatureData.signature);
       formData.append("folder", signatureData.folder);
-      formData.append("public_id", signatureData.publicId);
+      formData.append("type", signatureData.type);
+      if (signatureData.publicId) {
+        formData.append("public_id", signatureData.publicId);
+      }
 
       const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${signatureData.cloudName}/auto/upload`;
 

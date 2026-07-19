@@ -17,7 +17,12 @@ async function bootstrap() {
 
   // CORS
   app.enableCors({
-    origin: '*',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, or postman)
+      if (!origin) return callback(null, true);
+      // Echo the request origin to allow it with credentials: true
+      callback(null, true);
+    },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
@@ -70,7 +75,7 @@ async function bootstrap() {
   // Graceful Shutdown
   app.enableShutdownHooks();
 
-  const port = process.env.PORT || 3000;
+  const port = process.env.PORT || 5500;
   await app.listen(port);
   logger.log(`Application is running on: http://localhost:${port}/api`);
   logger.log(`Swagger Docs available at: http://localhost:${port}/api/docs`);
