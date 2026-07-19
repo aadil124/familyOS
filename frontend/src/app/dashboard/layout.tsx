@@ -194,6 +194,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <LogOut className="h-3.5 w-3.5" />
             Log Out
           </Button>
+          <div className="mt-3.5 text-[9px] text-muted-foreground/45 text-center select-none">
+            © {new Date().getFullYear()} FamilyOS. All rights reserved.
+          </div>
         </div>
       </aside>
 
