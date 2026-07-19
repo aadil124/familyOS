@@ -3,9 +3,10 @@ import React from "react";
 interface LogoProps {
   className?: string;
   showText?: boolean;
+  textColor?: string;
 }
 
-export function Logo({ className = "", showText = true }: LogoProps) {
+export function Logo({ className = "", showText = true, textColor = "text-foreground" }: LogoProps) {
   return (
     <div className={`flex items-center gap-2.5 select-none ${className}`}>
       {/* Abstract geometric icon (overlapping houses/vault) */}
@@ -27,7 +28,7 @@ export function Logo({ className = "", showText = true }: LogoProps) {
       </div>
       
       {showText && (
-        <span className="font-sans text-xl font-bold tracking-tight text-foreground">
+        <span className={`font-sans text-xl font-bold tracking-tight ${textColor}`}>
           Family<span className="text-accent">OS</span>
         </span>
       )}

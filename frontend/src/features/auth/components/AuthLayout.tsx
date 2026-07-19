@@ -24,7 +24,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
 
         {/* Top Section */}
         <div className="relative z-10">
-          <Logo showText={true} />
+          <Logo showText={true} textColor="text-white" />
         </div>
 
         {/* Middle Value Proposition Mockup */}
