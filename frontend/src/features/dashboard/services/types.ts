@@ -184,3 +184,46 @@ export interface AIMessage {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface LifeEventResponseDto {
+  id: string;
+  name: string;
+  normalizedKey: string;
+  description?: string | null;
+  category?: string | null;
+  expectedDocumentRules?: any | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReadinessAssessmentResponseDto {
+  id: string;
+  familyId: string;
+  familyMemberId: string | null;
+  lifeEventId: string;
+  requestedByUserId: string;
+  status: string;
+  readinessScore: number;
+  readinessLevel: string;
+  availableDocuments: {
+    documentId: string;
+    displayName: string;
+    categoryKey: string;
+    categoryName: string;
+  }[];
+  missingDocuments: string[];
+  mismatchWarnings: any[];
+  expiryWarnings: {
+    documentId: string;
+    displayName: string;
+    message: string;
+  }[];
+  nextSteps: string;
+  processSummary: string;
+  confidenceScore: number;
+  assessedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  lifeEvent?: LifeEventResponseDto | null;
+}

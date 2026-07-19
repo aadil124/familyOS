@@ -195,14 +195,25 @@ export default function ChatPage() {
           />
         </div>
 
-        {/* Right Column: Chat layout messages panel */}
         <div className="md:col-span-3 border border-border rounded-2xl overflow-hidden bg-card/20 flex flex-col shadow-sm">
-          <ChatLayout
-            messages={localMessages}
-            onSend={handleSendMessage}
-            isGenerating={isGenerating}
-            isLoading={messagesLoading && localMessages.length === 0}
-          />
+          {messagesLoading && localMessages.length === 0 ? (
+            <div className="flex-1 p-6 space-y-6 select-none bg-card/5">
+              <div className="flex gap-3 items-start max-w-lg animate-pulse">
+                <div className="h-8 w-8 rounded-full bg-secondary/35 shrink-0" />
+                <div className="h-20 flex-1 rounded-2xl bg-secondary/20" />
+              </div>
+              <div className="flex gap-3 items-start justify-end max-w-lg ml-auto animate-pulse">
+                <div className="h-16 flex-1 rounded-2xl bg-secondary/20" />
+                <div className="h-8 w-8 rounded-full bg-secondary/35 shrink-0" />
+              </div>
+            </div>
+          ) : (
+            <ChatLayout
+              messages={localMessages}
+              onSend={handleSendMessage}
+              isGenerating={isGenerating}
+            />
+          )}
         </div>
 
       </div>

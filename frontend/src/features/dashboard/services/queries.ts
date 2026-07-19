@@ -15,6 +15,7 @@ import {
   AiAnalysisResponseDto,
   AIConversation,
   AIMessage,
+  LifeEventResponseDto,
 } from "./types";
 
 export const dashboardKeys = {
@@ -577,6 +578,48 @@ export function useSendMessageMutation(familyId?: string, conversationId?: strin
     },
   });
 }
+
+// 11. Family Readiness Assessment queries & mutations
+export function useLifeEventsQuery() {
+  return useQuery({
+    queryKey: ["life-events"],
+    queryFn: async (): Promise<LifeEventResponseDto[]> => {
+      const response = await api.get<LifeEventResponseDto[]>("/v1/life-events");
+      return response.data;
+    },
+  });
+}
+
+export function useCreateAssessmentMutation(familyId?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: { lifeEventId: string; familyMemberId?: string | null }): Promise<ReadinessAssessmentResponseDto> => {
+      const response = await api.post<ReadinessAssessmentResponseDto>(
+        `/v1/families/${familyId}/assessments`,
+        payload
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.assessments(familyId) });
+    },
+  });
+}
+
+export function useAssessmentDetailQuery(familyId?: string, assessmentId?: string) {
+  return useQuery({
+    queryKey: ["assessment-detail", familyId, assessmentId],
+    queryFn: async (): Promise<ReadinessAssessmentResponseDto> => {
+      const response = await api.get<ReadinessAssessmentResponseDto>(
+        `/v1/families/${familyId}/assessments/${assessmentId}`
+      );
+      return response.data;
+    },
+    enabled: !!familyId && !!assessmentId,
+  });
+}
+
 
 
 
