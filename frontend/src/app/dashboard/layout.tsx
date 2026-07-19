@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useHealthQuery } from "@/features/dashboard/services/queries";
 import { Loader } from "@/components/ui/Loader";
@@ -155,7 +156,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             return (
-              <a
+              <Link
                 key={item.name}
                 href={item.href}
                 className={`flex items-center gap-3 px-3 py-2.5 text-sm font-semibold rounded-lg transition-all duration-150 outline-none focus:ring-1 focus:ring-ring ${
@@ -166,7 +167,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               >
                 {item.icon}
                 {item.name}
-              </a>
+              </Link>
             );
           })}
         </nav>

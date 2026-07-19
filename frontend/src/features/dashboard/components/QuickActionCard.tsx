@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/Card";
 import { ArrowRight } from "lucide-react";
 
@@ -19,7 +20,7 @@ export function QuickActionCard({ title, description, icon, href, badge, onClick
   };
 
   return (
-    <a href={href} onClick={handleClick} className="group block outline-none">
+    <Link href={href} onClick={handleClick} className="group block outline-none">
       <Card className="hover:border-accent/40 hover:bg-zinc-950/20 active:scale-[0.99] transition-all duration-300 relative overflow-hidden select-none">
         {/* Hover Highlight Gradient */}
         <div className="absolute inset-0 bg-gradient-to-r from-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
@@ -50,6 +51,6 @@ export function QuickActionCard({ title, description, icon, href, badge, onClick
           </div>
         </CardContent>
       </Card>
-    </a>
+    </Link>
   );
 }

@@ -11,6 +11,7 @@ import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/Card";
 import { Mail } from "lucide-react";
+import Link from "next/link";
 
 const loginSchema = z.object({
   email: z
@@ -86,12 +87,12 @@ export function LoginForm() {
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-muted-foreground select-none" />
-              <a
+              <Link
                 href="/forgot-password"
                 className="text-xs font-semibold text-accent hover:underline outline-none"
               >
                 Forgot your password?
-              </a>
+              </Link>
             </div>
             <PasswordInput
               label="Password"
@@ -127,12 +128,12 @@ export function LoginForm() {
 
       <CardFooter className="flex justify-center text-sm text-muted-foreground">
         Don&apos;t have an account?{" "}
-        <a
+        <Link
           href="/register"
           className="ml-1 font-semibold text-accent hover:underline outline-none"
         >
           Sign up
-        </a>
+        </Link>
       </CardFooter>
     </Card>
   );

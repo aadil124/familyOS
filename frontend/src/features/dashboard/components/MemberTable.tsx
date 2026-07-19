@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { FamilyMemberResponseDto } from "../services/types";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -54,6 +55,7 @@ export function calculateAge(dobString?: string | Date | null) {
 }
 
 export function MemberTable({ members, isLoading = false, onEdit, onDelete }: MemberTableProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"fullName" | "relationship" | "age" | "primaryEmail">("fullName");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -367,7 +369,7 @@ export function MemberTable({ members, isLoading = false, onEdit, onDelete }: Me
                   <tr
                     key={m.id}
                     className="group hover:bg-secondary/10 transition-colors duration-150 cursor-pointer"
-                    onClick={() => (window.location.href = `/dashboard/family/${m.id}`)}
+                    onClick={() => router.push(`/dashboard/family/${m.id}`)}
                   >
                     {visibleCols.photo && (
                       <td className="py-3 px-4">
@@ -446,7 +448,7 @@ export function MemberTable({ members, isLoading = false, onEdit, onDelete }: Me
             return (
               <Card
                 key={m.id}
-                onClick={() => (window.location.href = `/dashboard/family/${m.id}`)}
+                onClick={() => router.push(`/dashboard/family/${m.id}`)}
                 className="hover:border-accent/30 active:scale-[0.99] transition-all cursor-pointer bg-card/45 relative overflow-hidden"
               >
                 <CardContent className="p-4 space-y-3.5">

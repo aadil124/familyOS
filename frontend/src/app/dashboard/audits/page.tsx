@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -31,6 +32,7 @@ import { toast } from "sonner";
 export default function ReadinessAuditsPage() {
   const { activeFamily } = useWorkspace();
   const familyId = activeFamily?.id;
+  const router = useRouter();
 
   // Fetch past assessments (limit 10 for dashboard display)
   const { data: pastData, isLoading: assessmentsLoading, refetch: refetchAssessments } =
@@ -720,7 +722,7 @@ export default function ReadinessAuditsPage() {
                     {reportTarget.availableDocuments.map((doc, idx) => (
                       <div
                         key={idx}
-                        onClick={() => (window.location.href = `/dashboard/vault/${doc.documentId}`)}
+                        onClick={() => router.push(`/dashboard/vault/${doc.documentId}`)}
                         className="flex items-center justify-between p-2 rounded-lg border border-border bg-card hover:bg-secondary/10 transition-colors cursor-pointer"
                       >
                         <span className="font-bold text-foreground truncate max-w-[150px]">{doc.displayName}</span>

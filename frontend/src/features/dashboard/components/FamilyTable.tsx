@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { FamilyOverview } from "../services/queries";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -28,6 +29,7 @@ interface FamilyTableProps {
 }
 
 export function FamilyTable({ families, isLoading = false, onEdit, onDelete }: FamilyTableProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "memberCount" | "documentCount" | "readinessScore" | "createdAt">("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -333,7 +335,7 @@ export function FamilyTable({ families, isLoading = false, onEdit, onDelete }: F
                 <tr
                   key={f.id}
                   className="group hover:bg-secondary/10 transition-colors duration-150 cursor-pointer"
-                  onClick={() => (window.location.href = `/dashboard/families/${f.id}`)}
+                  onClick={() => router.push(`/dashboard/families/${f.id}`)}
                 >
                   <td className="py-3.5 px-4 font-bold text-foreground group-hover:text-accent transition-colors">
                     {f.name}
@@ -404,7 +406,7 @@ export function FamilyTable({ families, isLoading = false, onEdit, onDelete }: F
           {paginatedFamilies.map((f) => (
             <Card
               key={f.id}
-              onClick={() => (window.location.href = `/dashboard/families/${f.id}`)}
+              onClick={() => router.push(`/dashboard/families/${f.id}`)}
               className="hover:border-accent/30 active:scale-[0.99] transition-all cursor-pointer bg-card/45 relative overflow-hidden"
             >
               <CardContent className="p-4 space-y-3.5">

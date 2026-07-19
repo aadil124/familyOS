@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/Card";
 import { Mail, ArrowLeft, Info } from "lucide-react";
 import { toast } from "sonner";
+import Link from "next/link";
 
 const forgotPasswordSchema = z.object({
   email: z
@@ -69,13 +70,13 @@ export function ForgotPasswordForm() {
           </div>
         </CardContent>
         <CardFooter className="flex justify-center">
-          <a
+          <Link
             href="/login"
             className="inline-flex items-center gap-2 text-sm font-semibold text-accent hover:underline outline-none"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to login
-          </a>
+          </Link>
         </CardFooter>
       </Card>
     );
@@ -117,13 +118,13 @@ export function ForgotPasswordForm() {
       </CardContent>
 
       <CardFooter className="flex justify-center">
-        <a
+        <Link
           href="/login"
           className="inline-flex items-center gap-2 text-sm font-semibold text-accent hover:underline outline-none"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to login
-        </a>
+        </Link>
       </CardFooter>
     </Card>
   );

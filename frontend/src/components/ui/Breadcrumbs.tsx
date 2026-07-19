@@ -2,6 +2,7 @@
 
 import React from "react";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { ChevronRight, Home } from "lucide-react";
 
 interface BreadcrumbsProps {
@@ -43,13 +44,13 @@ export function Breadcrumbs({ className = "" }: BreadcrumbsProps) {
       aria-label="Breadcrumb"
       className={`flex items-center gap-1.5 text-xs text-muted-foreground select-none ${className}`}
     >
-      <a
+      <Link
         href="/dashboard"
         className="flex items-center gap-1 hover:text-foreground transition-colors duration-150 outline-none focus:text-foreground"
       >
         <Home className="h-3.5 w-3.5" />
         <span className="sr-only">Home</span>
-      </a>
+      </Link>
 
       {pathParts.map((part, index) => {
         const isLast = index === pathParts.length - 1;
@@ -72,12 +73,12 @@ export function Breadcrumbs({ className = "" }: BreadcrumbsProps) {
                 {title}
               </span>
             ) : (
-              <a
+              <Link
                 href={href}
                 className="hover:text-foreground transition-colors duration-150 truncate max-w-[100px] sm:max-w-xs outline-none focus:text-foreground"
               >
                 {title}
-              </a>
+              </Link>
             )}
           </React.Fragment>
         );

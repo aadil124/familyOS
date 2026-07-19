@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -25,6 +26,7 @@ import { toast } from "sonner";
 export default function DocumentIntelligencePage() {
   const { activeFamily } = useWorkspace();
   const familyId = activeFamily?.id;
+  const router = useRouter();
 
   // 1. Fetch vault files
   const { data: documents = [], isLoading, refetch } = useDocumentsQuery(familyId);
@@ -230,7 +232,7 @@ export default function DocumentIntelligencePage() {
                             <tr
                               key={doc.id}
                               className="hover:bg-secondary/10 cursor-pointer transition-colors"
-                              onClick={() => (window.location.href = `/dashboard/vault/${doc.id}`)}
+                              onClick={() => router.push(`/dashboard/vault/${doc.id}`)}
                             >
                               <td className="py-3 px-3 font-bold text-foreground truncate max-w-[150px]">
                                 {doc.displayName}

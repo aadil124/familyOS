@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/Card";
 import { Mail, User } from "lucide-react";
+import Link from "next/link";
 
 // Password constraints matching backend exactly
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
@@ -166,12 +167,12 @@ export function RegisterForm() {
 
       <CardFooter className="flex justify-center text-sm text-muted-foreground">
         Already have an account?{" "}
-        <a
+        <Link
           href="/login"
           className="ml-1 font-semibold text-accent hover:underline outline-none"
         >
           Sign in
-        </a>
+        </Link>
       </CardFooter>
     </Card>
   );

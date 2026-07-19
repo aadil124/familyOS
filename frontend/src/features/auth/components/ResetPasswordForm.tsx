@@ -9,6 +9,7 @@ import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/Card";
 import { ArrowLeft, ShieldCheck, Info } from "lucide-react";
 import { toast } from "sonner";
+import Link from "next/link";
 
 // Password constraints matching backend exactly
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
@@ -82,13 +83,13 @@ export function ResetPasswordForm() {
           </div>
         </CardContent>
         <CardFooter className="flex justify-center">
-          <a
+          <Link
             href="/login"
             className="inline-flex items-center gap-2 text-sm font-semibold text-accent hover:underline outline-none"
           >
             <ArrowLeft className="h-4 w-4" />
             Go to login
-          </a>
+          </Link>
         </CardFooter>
       </Card>
     );
@@ -137,13 +138,13 @@ export function ResetPasswordForm() {
       </CardContent>
 
       <CardFooter className="flex justify-center">
-        <a
+        <Link
           href="/login"
           className="inline-flex items-center gap-2 text-sm font-semibold text-accent hover:underline outline-none"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to login
-        </a>
+        </Link>
       </CardFooter>
     </Card>
   );

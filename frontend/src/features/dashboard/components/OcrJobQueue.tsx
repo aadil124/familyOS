@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { DocumentResponseDto } from "../services/types";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -21,6 +22,7 @@ interface OcrJobQueueProps {
 }
 
 export function OcrJobQueue({ documents, isLoading = false, onRefresh }: OcrJobQueueProps) {
+  const router = useRouter();
   const [retryingIds, setRetryingIds] = useState<Record<string, boolean>>({});
 
   const activeJobs = useMemo(() => {
@@ -188,7 +190,7 @@ export function OcrJobQueue({ documents, isLoading = false, onRefresh }: OcrJobQ
                     <tr
                       key={job.id}
                       className="hover:bg-secondary/10 cursor-pointer transition-colors"
-                      onClick={() => (window.location.href = `/dashboard/vault/${job.id}`)}
+                      onClick={() => router.push(`/dashboard/vault/${job.id}`)}
                     >
                       <td className="py-3 px-3 font-bold text-foreground truncate max-w-[150px]">
                         {job.displayName}

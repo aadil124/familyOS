@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -51,6 +52,7 @@ interface CustomReminder {
 export default function NotificationsCenterPage() {
   const { activeFamily } = useWorkspace();
   const familyId = activeFamily?.id;
+  const router = useRouter();
 
   // Active Tab: "alerts", "reminders", "preferences"
   const [activeTab, setActiveTab] = useState<"alerts" | "reminders" | "preferences">("alerts");
@@ -720,7 +722,7 @@ export default function NotificationsCenterPage() {
                                   )}
                                   {rem.isDocument && (
                                     <button
-                                      onClick={() => (window.location.href = `/dashboard/vault/${rem.id}`)}
+                                      onClick={() => router.push(`/dashboard/vault/${rem.id}`)}
                                       className="inline-flex items-center gap-1 px-2.5 h-6.5 rounded border border-border bg-secondary/35 text-[9px] font-bold text-muted-foreground hover:text-foreground transition-all"
                                     >
                                       Inspect File
@@ -1005,7 +1007,7 @@ export default function NotificationsCenterPage() {
                   )}
                   {drawerAlert.relatedDocumentId && (
                     <Button
-                      onClick={() => (window.location.href = `/dashboard/vault/${drawerAlert.relatedDocumentId}`)}
+                      onClick={() => router.push(`/dashboard/vault/${drawerAlert.relatedDocumentId}`)}
                       variant="outline"
                       className="flex-1 text-xs font-bold"
                     >

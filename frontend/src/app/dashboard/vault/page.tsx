@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -46,6 +47,7 @@ import { api } from "@/services/api";
 export default function DocumentVaultPage() {
   const { activeFamily } = useWorkspace();
   const familyId = activeFamily?.id;
+  const router = useRouter();
 
   // 1. Fetch resources
   const { data: documents = [], isLoading: docLoading, refetch } = useDocumentsQuery(familyId);
@@ -402,7 +404,7 @@ export default function DocumentVaultPage() {
                       return (
                         <div
                           key={d.id}
-                          onClick={() => (window.location.href = `/dashboard/vault/${d.id}`)}
+                          onClick={() => router.push(`/dashboard/vault/${d.id}`)}
                           className="flex items-center justify-between p-3 rounded-xl border border-border bg-card/45 hover:bg-secondary/10 transition-all cursor-pointer select-none"
                         >
                           <div className="flex items-center gap-3 min-w-0">
@@ -445,7 +447,7 @@ export default function DocumentVaultPage() {
                     stats.processingQueue.map((d) => (
                       <div
                         key={d.id}
-                        onClick={() => (window.location.href = `/dashboard/vault/${d.id}`)}
+                        onClick={() => router.push(`/dashboard/vault/${d.id}`)}
                         className="flex items-center justify-between p-3 rounded-xl border border-border/80 bg-secondary/5 hover:bg-secondary/15 transition-all cursor-pointer"
                       >
                         <div className="flex items-center gap-3 min-w-0">
@@ -484,7 +486,7 @@ export default function DocumentVaultPage() {
                       return (
                         <div
                           key={doc.id}
-                          onClick={() => (window.location.href = `/dashboard/vault/${doc.id}`)}
+                          onClick={() => router.push(`/dashboard/vault/${doc.id}`)}
                           className={`p-3 rounded-xl border flex gap-3 cursor-pointer select-none ${
                             isExpired
                               ? "border-rose-500/20 bg-rose-500/[0.01] text-rose-500"
@@ -718,7 +720,7 @@ export default function DocumentVaultPage() {
                       <tr
                         key={d.id}
                         className="group hover:bg-secondary/10 cursor-pointer transition-colors duration-150"
-                        onClick={() => (window.location.href = `/dashboard/vault/${d.id}`)}
+                        onClick={() => router.push(`/dashboard/vault/${d.id}`)}
                       >
                         {visibleCols.format && <td className="py-3.5 px-4">{getFormatIcon(d.fileType)}</td>}
                         <td className="py-3.5 px-4 font-bold text-foreground group-hover:text-accent transition-colors">
@@ -788,7 +790,7 @@ export default function DocumentVaultPage() {
                 return (
                   <Card
                     key={d.id}
-                    onClick={() => (window.location.href = `/dashboard/vault/${d.id}`)}
+                    onClick={() => router.push(`/dashboard/vault/${d.id}`)}
                     className="hover:border-accent/30 active:scale-[0.99] transition-all cursor-pointer bg-card/45 relative overflow-hidden flex flex-col"
                   >
                     <CardContent className="p-4 flex-1 flex flex-col justify-between space-y-4">
