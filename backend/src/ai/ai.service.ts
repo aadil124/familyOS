@@ -14,6 +14,7 @@ import { computeLevenshteinSimilarity } from '../common/utils/string-similarity'
 import { AnalysisStatus, DocumentProcessingStatus, DocumentReviewStatus, OCRStatus, DocumentAnalysis, Prisma } from '@prisma/client';
 import { AiAnalysisResponseDto } from './dto/ai-analysis-response.dto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { NotificationDispatcherService } from '../notifications/notification-dispatcher.service';
 
 @Injectable()
 export class AiService {
@@ -26,6 +27,7 @@ export class AiService {
     private readonly familyRepository: FamilyRepository,
     private readonly familyMemberRepository: FamilyMemberRepository,
     private readonly ocrRepository: OcrRepository,
+    private readonly notificationDispatcher: NotificationDispatcherService,
   ) {}
 
   // --- Helper: Verify Family Ownership ---
@@ -115,18 +117,83 @@ export class AiService {
       if (document.familyMemberId) {
         const member = await this.familyMemberRepository.findById(document.familyMemberId);
         if (member && member.deletedAt === null) {
-          const similarity = computeLevenshteinSimilarity(member.fullName, result.nameOnDocument || '');
-          const nameMatched = similarity >= 0.85;
+          const nameSimilarity = computeLevenshteinSimilarity(member.fullName, result.nameOnDocument || '');
+          const nameMatched = nameSimilarity >= 0.85;
+
+          // Cross-document address matching
+          let addressMatched = true;
+          let addressScore = 1.0;
+          let addressMessage = '';
+
+          if (result.addressOnDocument) {
+            const otherDocs = (await this.documentsRepository.findMany({
+              where: {
+                familyMemberId: document.familyMemberId,
+                id: { not: documentId },
+                processingStatus: DocumentProcessingStatus.SUCCESS,
+                deletedAt: null,
+              },
+            })) as any[];
+
+            const otherDocsWithAddress = otherDocs.filter(
+              (d: any) => d.documentAnalysis && d.documentAnalysis.addressOnDocument,
+            );
+
+            if (otherDocsWithAddress.length > 0) {
+              otherDocsWithAddress.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+              const latestOtherAddress = otherDocsWithAddress[0].documentAnalysis.addressOnDocument;
+              
+              const addrSimilarity = computeLevenshteinSimilarity(latestOtherAddress, result.addressOnDocument);
+              addressScore = Number(addrSimilarity.toFixed(2));
+              addressMatched = addrSimilarity >= 0.80; // Threshold of 0.80
+              if (!addressMatched) {
+                addressMessage = `Address mismatch with "${otherDocsWithAddress[0].displayName}".`;
+              }
+            }
+          }
+
           mismatchFlags = {
             checks: {
               name: {
                 matched: nameMatched,
-                score: Number(similarity.toFixed(2)),
+                score: Number(nameSimilarity.toFixed(2)),
+              },
+              address: {
+                matched: addressMatched,
+                score: addressScore,
+                message: addressMessage || undefined,
               },
             },
           };
-          if (!nameMatched) {
+
+          if (!nameMatched || !addressMatched) {
             issueStatus = 'mismatch_detected';
+
+            // Dispatch notification alert
+            const family = await this.familyRepository.findById(document.familyId);
+            if (family) {
+              let alertMsg = '';
+              if (!nameMatched && !addressMatched) {
+                alertMsg = `Name and address mismatches detected on document "${document.displayName}" for ${member.fullName}.`;
+              } else if (!nameMatched) {
+                alertMsg = `Name mismatch detected on document "${document.displayName}" for ${member.fullName}.`;
+              } else {
+                alertMsg = `Address mismatch detected on document "${document.displayName}" for ${member.fullName}.`;
+              }
+
+              await this.notificationDispatcher.dispatch(family.ownerUserId, family.id, {
+                type: 'mismatch',
+                severity: 'warning',
+                title: 'Document Mismatch Detected',
+                message: alertMsg,
+                relatedDocumentId: documentId,
+                relatedFamilyMemberId: document.familyMemberId,
+                actionLabel: 'Review Document',
+                actionReference: `/vault?documentId=${documentId}`,
+              }).catch((err) => {
+                this.logger.error(`Failed to dispatch mismatch notification: ${err.message}`);
+              });
+            }
           }
         }
       }

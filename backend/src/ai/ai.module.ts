@@ -15,6 +15,7 @@ import { PrismaModule } from '../database/prisma.module';
 import { FamilyModule } from '../family/family.module';
 import { FamilyMemberModule } from '../family-member/family-member.module';
 import { DocumentsModule } from '../documents/documents.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { OcrRepository } from '../ocr/ocr.repository';
 
 @Module({
@@ -22,6 +23,7 @@ import { OcrRepository } from '../ocr/ocr.repository';
     PrismaModule,
     FamilyModule,
     FamilyMemberModule,
+    NotificationsModule,
     forwardRef(() => DocumentsModule),
   ],
   controllers: [AiController, ChatController],

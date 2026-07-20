@@ -10,6 +10,7 @@ import { AnalysisStatus, DocumentProcessingStatus, DocumentReviewStatus, OCRStat
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { AiProvider } from '../providers/ai-provider.interface';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { NotificationDispatcherService } from '../../notifications/notification-dispatcher.service';
 
 describe('AiService', () => {
   let service: AiService;
@@ -39,6 +40,7 @@ describe('AiService', () => {
   const mockDocumentsRepository = {
     findById: jest.fn(),
     update: jest.fn(),
+    findMany: jest.fn().mockResolvedValue([]),
   };
 
   const mockFamilyRepository = {
@@ -53,6 +55,10 @@ describe('AiService', () => {
     findByDocumentId: jest.fn(),
   };
 
+  const mockNotificationDispatcher = {
+    dispatch: jest.fn().mockResolvedValue({}),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -63,6 +69,7 @@ describe('AiService', () => {
         { provide: FamilyRepository, useValue: mockFamilyRepository },
         { provide: FamilyMemberRepository, useValue: mockFamilyMemberRepository },
         { provide: OcrRepository, useValue: mockOcrRepository },
+        { provide: NotificationDispatcherService, useValue: mockNotificationDispatcher },
       ],
     }).compile();
 
